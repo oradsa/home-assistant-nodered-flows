@@ -10,11 +10,17 @@
 * [Scene](/scene.md) - apply scenes.
 * [Service](/service.md) - running any HA service.
 
-## Configurations that can be done on any type of action
-The following configuration can be done on any type of action:
+## The `actions` object
+The `actions` object can be:
+1. An *object* with the set of options mentioned below.
+2. A *string* specifing the path under the root `actions` object in the `nodered-configuration.json` file, where the actual `actions` object is at.
+   See [Multiple usages of the same actions object](#multiple-usages-of-the-same-actions-object) section below.
+
+## Actions object options
+The following configuration can be done on `actions` object:
 
 &nbsp; **active** &nbsp; *boolean* &nbsp; `optional` <br>
-&nbsp; Whether the action is active or not.
+&nbsp; Whether the action is active or not. Defaults to true.
 
 &nbsp; **offsetSeconds** &nbsp; *number* &nbsp; `optional` <br>
 &nbsp; The number of seconds to postpone the action. Only positive number is allowed.
@@ -26,4 +32,41 @@ The following configuration can be done on any type of action:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Use `true` to not restricting the person that needs to be at home. <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Use `"<person>"` (string) to specify which person needs to be at home.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Use `["<person_1>","<person_2>"]` (array of strings) to specify that one of persons needs to be at home.
+
+
+## Nested action object options
+Each specific action nested under the `actions` object supports the following options:
+
+&nbsp; **active** &nbsp; *boolean* &nbsp; `optional` <br>
+&nbsp; Whether the action is active or not. Defaults to true.
+
+&nbsp; **offsetSeconds** &nbsp; *number* &nbsp; `optional` <br>
+&nbsp; The number of seconds to postpone the action. Only positive number is allowed.
+
+## Multiple usages of the same actions object
+If you want to execute the same set of actions from multiple triggers, you can replace the actual `actions` object with a string specifing the path of the actual `actions` object. The path of this object should always be under `actions` root object of the `nodered-configuration.json` file.
+
+For example, if the `nodered-configuration.json` file contains the following:
+```json
+{
+  ...
+  "actions": {
+    "my_named_actions": {
+      ...
+      <spcific actions to run>
+      ...
+    },
+    "parent_prop": {
+      "my_nested_named_actions": {
+        ...
+        <spcific actions to run>
+        ...
+      }
+    }
+  }
+  ...
+}
+```
+Then the you can put `"my_named_actions"` or `"parent_prop.my_nested_named_actions"` intead of putting the complete object multiple times.
+All other options that are supported under the `actions` object could be set on this object as well (e.g. `offsetSeconds`).
 
