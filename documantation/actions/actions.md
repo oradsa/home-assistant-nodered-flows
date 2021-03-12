@@ -1,14 +1,14 @@
 # Actions
 
 ## List of supported actions
-* [State preservation](/statePreservation.md) - saving or restoring state of devices, filtering by domains and/or entities.
-* [Turn off](/turnOff.md) - turn off any device which supports it, filtering by domains and/or entities.
-* [Media](/media.md) - control `media_player` entities (play/resume, pause).
-* [Climate](/climate.md) - control `climate` entities (turn on/off, set temperature).
-* [Cover](/cover.md) - control `cover` entities (open, close, set position).
-* [Spotify](/spotify.md) - Spotify playlists playback, to any Spotify device/speaker.
-* [Scene](/scene.md) - apply scenes.
-* [Service](/service.md) - running any HA service.
+* [State preservation](/documantation/actions/statePreservation.md) - saving or restoring state of devices, filtering by domains and/or entities.
+* [Turn off](/documantation/actions/turnOff.md) - turn off any device which supports it, filtering by domains and/or entities.
+* [Media](/documantation/actions/media.md) - control `media_player` entities (play/resume, pause).
+* [Climate](/documantation/actions/climate.md) - control `climate` entities (turn on/off, set temperature).
+* [Cover](/documantation/actions/cover.md) - control `cover` entities (open, close, set position).
+* [Spotify](/documantation/actions/spotify.md) - Spotify playlists playback, to any Spotify device/speaker.
+* [Scene](/documantation/actions/scene.md) - apply scenes.
+* [Service](/documantation/actions/service.md) - running any HA service.
 
 ## The `actions` object
 The `actions` object can be:
