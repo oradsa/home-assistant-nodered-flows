@@ -35,11 +35,11 @@ First, validate that all the dependencies are met, then continue to the Install 
 
 ### Install or update
 **Notice**: when updating, save the current latitude & longitude of the Schedex node before you import the updated flows.
-1. Download the flows `.json` files from the [flows](/flows) folder.
-2. Import the flows `.json` files into Node_RED (through the top-right menue > Import).
+1. Download this repository as a zip and un-zip it.
+2. Import the flows `.json` files from [flows](/flows) folder into Node-RED (through the top-right menue > Import).
 3. If you're not using the Home Assistant Node-RED addon, set the Home Assistant server node manually (through the top-right menue > Configuration nodes > Home Assistant).
 4. Set the latitude & longitude of the Schedex node. You can find them by clicking on a spot on a map inside [Google Maps](http://maps.google.com).
-5. Download the  from [config](/config) folder, and place it under your `/config` folder inside Home Assistant.
+5. Copy the the `nodered-configuration.json` file from [config](/config) folder, into your `/config` folder of Home Assistant (you can upload the file via HA File editor addon).
    > If you're running Node-RED outside of HA, create a `/config` folder under the root folder where Node-RED is running, and place the file there.
 7. Deploy the flows to Node-RED.
 
