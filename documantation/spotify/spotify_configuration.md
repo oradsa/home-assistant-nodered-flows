@@ -17,23 +17,23 @@ The spotify property in the nodered-configuration.json file holds the Soptify co
 &nbsp; **authorization** &nbsp; *object* <br>
 &nbsp; Set authorization options. See details below on how to get authorization details.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **type** &nbsp; *string* <br>
-&nbsp;&nbsp;&nbsp;&nbsp; `api_token` or `web_player_token`. See authorization section below.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **type** &nbsp; *string* <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `api_token` or `web_player_token`. See authorization section below.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **clientId** &nbsp; *string* <br>
-&nbsp;&nbsp;&nbsp;&nbsp; The client id. Relevant only for `api_token` authorization type.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **clientId** &nbsp; *string* <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The client id. Relevant only for `api_token` authorization type.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **clientSecret** &nbsp; *string* <br>
-&nbsp;&nbsp;&nbsp;&nbsp; The client secret. Relevant only for `api_token` authorization type.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **clientSecret** &nbsp; *string* <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The client secret. Relevant only for `api_token` authorization type.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **refreshToken** &nbsp; *string* <br>
-&nbsp;&nbsp;&nbsp;&nbsp; The refresh token. Relevant only for `api_token` authorization type.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **refreshToken** &nbsp; *string* <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The refresh token. Relevant only for `api_token` authorization type.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **sp_dc** &nbsp; *string* <br>
-&nbsp;&nbsp;&nbsp;&nbsp; The value of `sp_dc` cookie. Relevant only for `web_player_token` authorization type.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **sp_dc** &nbsp; *string* <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The value of `sp_dc` cookie. Relevant only for `web_player_token` authorization type.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **sp_t** &nbsp; *string* <br>
-&nbsp;&nbsp;&nbsp;&nbsp; The value of `sp_t` cookie. Relevant only for `web_player_token` authorization type.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **sp_t** &nbsp; *string* <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The value of `sp_t` cookie. Relevant only for `web_player_token` authorization type.
 
 &nbsp; **defaultDevice** &nbsp; *string* &nbsp; `optional` <br>
 &nbsp; Name of a device to use in case no device specified and none is currently playing.
@@ -41,8 +41,8 @@ The spotify property in the nodered-configuration.json file holds the Soptify co
 &nbsp; **playlistNicknames** &nbsp; *object* &nbsp; `optional` <br>
 &nbsp; Custom playlist nicknames.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **<playlist_name_or_uri>** &nbsp; *array of strings* <br>
-&nbsp;&nbsp;&nbsp;&nbsp; The playlist exact name or Spotify URI of the playlist. The value is an array of strings which are the nicknames of the playlist.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **<playlist_name_or_uri>** &nbsp; *array of strings* <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The playlist exact name or Spotify URI of the playlist. The value is an array of strings which are the nicknames of the playlist.
 
 &nbsp; **ignoredCharsWhenComparingNames** &nbsp; *array of strings* &nbsp; `optional` <br>
 &nbsp; Define characters to ignore when a playlist is being searched by its name. Default: `['(',')','-']`.
