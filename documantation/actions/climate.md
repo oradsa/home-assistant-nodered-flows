@@ -1,4 +1,4 @@
-# Climate action
+# Climate actions
 
 This documentation is not yet complete.
 
