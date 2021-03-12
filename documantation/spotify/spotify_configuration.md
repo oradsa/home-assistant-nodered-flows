@@ -74,14 +74,19 @@ You can assist [this guide](https://developers.google.com/web/tools/chrome-devto
       "clientId": "in case you use 'api_token' authorization type",
       "clientSecret": "in case you use 'api_token' authorization type",
       "refreshToken": "in case you use 'api_token' authorization type",
-      "sp_dc": "in case you use 'web_player_token' authorization type, check readme",
-      "sp_t": "in case you use 'web_player_token' authorization type, check readme"
+      "sp_dc": "in case you use 'web_player_token' authorization type",
+      "sp_t": "in case you use 'web_player_token' authorization type"
     },
     "playlistNicknames": {
       "spotify:playlist:xxx": [
         "Daily Mix 1"
       ]
-    }
+    },
+   "ignoredCharsWhenComparingNames": [
+     "(",
+     ")",
+     "-"
+   ]
   }
 }
 ```
