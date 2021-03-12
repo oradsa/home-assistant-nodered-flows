@@ -64,15 +64,15 @@ The `events` property in the `nodered-configuration.json` file allows you to con
 ### Actions
 The `actions` property in the `nodered-configuration.json` file allows you to [configure actions that you use multiple times](/documantation/actions/actions.md).
 
-The actions that you can define:
-* [statePreservation](/documantation/actions/statePreservation.md) - saving or restoring state of devices, filtering by domains and/or entities.
-* [turnOff](/documantation/actions/turnOff.md) - turn off any device which supports it, filtering by domains and/or entities.
-* [media](/documantation/actions/media.md) - control `media_player` entities (play/resume, pause).
-* [climate](/documantation/actions/climate.md) - control `climate` entities (turn on/off, set temperature).
-* [cover](/documantation/actions/cover.md) - control `cover` entities (open, close, set position).
-* [spotify](/documantation/actions/spotify.md) - Spotify playlists playback, to any Spotify device/speaker.
-* [scene](/documantation/actions/scene.md) - apply scenes.
-* [service](/documantation/actions/service.md) - running any HA service.
+The actions types that you can define:
+* [State preservation](/documantation/actions/statePreservation.md) - saving or restoring state of devices, filtering by domains and/or entities.
+* [Turn off](/documantation/actions/turnOff.md) - turn off any device which supports it, filtering by domains and/or entities.
+* [Media](/documantation/actions/media.md) - control `media_player` entities (play/resume, pause).
+* [Climate](/documantation/actions/climate.md) - control `climate` entities (turn on/off, set temperature).
+* [Cover](/documantation/actions/cover.md) - control `cover` entities (open, close, set position).
+* [Spotify](/documantation/actions/spotify.md) - Spotify playlists playback, to any Spotify device/speaker.
+* [Scene](/documantation/actions/scene.md) - apply scenes.
+* [Service](/documantation/actions/service.md) - running any HA service.
 
 ### Spotify
 The `spotify` property in the `nodered-configuration.json` file holds the Soptify configuration.
