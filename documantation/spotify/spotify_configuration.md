@@ -3,13 +3,13 @@ The spotify property in the nodered-configuration.json file holds the Soptify co
 
 ## Configuration
    
-&nbsp;**spotify** &nbsp; *object* <br>
-&nbsp;&nbsp;&nbsp; Map of `spotify configuration` objects, see below.
+&nbsp; **spotify** &nbsp; *object* <br>
+&nbsp; Map of `spotify configuration` objects, see below.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **default** *string* or *object* &nbsp; `optional` <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **default** *string* or *object* &nbsp; `optional` <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Either *string* specifing the name of the default configuration to use, or the `spotify configuration` object itself (see below).
 
-&nbsp;&nbsp;&nbsp;&nbsp; **<custom_name>** *object* <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **<custom_name>** *object* <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Define a spotify instance configuration see `spotify configuration` object below.
 
 ### Spotify configuration object options
