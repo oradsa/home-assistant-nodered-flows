@@ -47,15 +47,15 @@ The spotify property in the nodered-configuration.json file holds the Soptify co
 &nbsp; **ignoredCharsWhenComparingNames** &nbsp; *array of strings* &nbsp; `optional` <br>
 &nbsp; Define characters to ignore when a playlist is being searched by its name. Default: `['(',')','-']`.
 
-### Authorization
+## Authorization
 There are 2 authorization types. Notice that only `web_player_token` authorization supports Sonos playback.
 
-#### api_token authorization
+### api_token authorization
 You'll need a client id, client secret, and a refresh token.
 
 To generate those, refer to https://developer.spotify.com/dashboard/applications and create a new application, and then follow the [Spotify authorization guide](https://developer.spotify.com/documentation/general/guides/authorization-guide/#authorization-code-flow).
 
-#### web_player_token authorization
+### web_player_token authorization
 You'll need the value of the `sp_dc` and `sp_t` cookies from a Spotify Web Player session.
 
 It's best to open the browser in incognito mode, then open `https://open.spotify.com` and login. 
