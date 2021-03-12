@@ -62,7 +62,7 @@ The `events` property in the `nodered-configuration.json` file allows you to con
 * [Custom events](/documantation/events/custom_events.md) - triggered manually (e.g. by HA script).
 
 ### Actions
-The `actions` property in the `nodered-configuration.json` file allows you to [configure actions that you use multiple times](/documantation/actions/actions.md).
+The `actions` property in the `nodered-configuration.json` file allows you to [configure actions that you use multiple times](/documantation/actions/actions.md#multiple-usages-of-the-same-actions-object).
 
 The actions types that you can define:
 * [State preservation](/documantation/actions/statePreservation.md) - saving or restoring state of devices, filtering by domains and/or entities.
