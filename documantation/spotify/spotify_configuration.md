@@ -6,7 +6,7 @@ The spotify property in the nodered-configuration.json file holds the Soptify co
 &nbsp;**spotify** &nbsp; *object* <br>
 &nbsp;&nbsp;&nbsp; Map of `spotify configuration` objects, see below.
 
-&nbsp;&nbsp;&nbsp;&nbsp; **default** *string* or *object* `optional` <br>
+&nbsp;&nbsp;&nbsp;&nbsp; **default** *string* or *object* &nbsp; `optional` <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Either *string* specifing the name of the default configuration to use, or the `spotify configuration` object itself (see below).
 
 &nbsp;&nbsp;&nbsp;&nbsp; **<custom_name>** *object* <br>
@@ -35,16 +35,16 @@ The spotify property in the nodered-configuration.json file holds the Soptify co
 &nbsp;&nbsp;&nbsp;&nbsp; **sp_t** &nbsp; *string* <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The value of `sp_t` cookie. Relevant only for `web_player_token` authorization type.
 
-&nbsp;**defaultDevice** &nbsp; *string* `optional` <br>
+&nbsp;**defaultDevice** &nbsp; *string* &nbsp; `optional` <br>
 &nbsp;&nbsp;&nbsp; Name of a device to use in case no device specified and none is currently playing.
 
-&nbsp;**playlistNicknames** &nbsp; *object* `optional` <br>
+&nbsp;**playlistNicknames** &nbsp; *object* &nbsp; `optional` <br>
 &nbsp;&nbsp;&nbsp; Custom playlist nicknames.
 
 &nbsp;&nbsp;&nbsp;&nbsp; **<playlist_name_or_uri>** &nbsp; *array of strings* <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The playlist exact name or Spotify URI of the playlist. The value is an array of strings which are the nicknames of the playlist.
 
-&nbsp;**ignoredCharsWhenComparingNames** &nbsp; *array of strings* `optional` <br>
+&nbsp;**ignoredCharsWhenComparingNames** &nbsp; *array of strings* &nbsp; `optional` <br>
 &nbsp;&nbsp;&nbsp; Define characters to ignore when a playlist is being searched by its name. Default: `['(',')','-']`.
 
 ### Authorization
