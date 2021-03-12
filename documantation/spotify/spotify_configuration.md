@@ -68,25 +68,30 @@ You can assist [this guide](https://developers.google.com/web/tools/chrome-devto
 "spotify": {
   "default": "my_spotify",
   "my_spotify": {
-    "defaultDevice": "MySpotifySpeaker",
     "authorization": {
-      "type": "api_token|web_player_token",
-      "clientId": "in case you use 'api_token' authorization type",
-      "clientSecret": "in case you use 'api_token' authorization type",
-      "refreshToken": "in case you use 'api_token' authorization type",
-      "sp_dc": "in case you use 'web_player_token' authorization type",
-      "sp_t": "in case you use 'web_player_token' authorization type"
+      "type": "web_player_token",
+      "sp_dc": "<sp_dc_cookie_value>",
+      "sp_t": "<sp_t_cookie_value>"
     },
+    "defaultDevice": "MySpotifySpeaker",
     "playlistNicknames": {
       "spotify:playlist:xxx": [
         "Daily Mix 1"
       ]
     },
-   "ignoredCharsWhenComparingNames": [
-     "(",
-     ")",
-     "-"
-   ]
+    "ignoredCharsWhenComparingNames": [
+      "(",
+      ")",
+      "-"
+    ]
+  },
+  "other_spotify": {
+    "authorization": {
+      "type": "api_token",
+      "clientId": "<client_id>",
+      "clientSecret": "<client_secret>",
+      "refreshToken": "<refresh_token>"
+    }
   }
 }
 ```
