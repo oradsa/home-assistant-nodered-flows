@@ -47,7 +47,7 @@ Each specific action nested under the `actions` object supports the following op
 If you want to execute the same set of actions from multiple triggers, you can replace the actual `actions` object with a string specifing the path of the actual `actions` object. The path of this object should always be under `actions` root object of the `nodered-configuration.json` file.
 
 For example, if the `nodered-configuration.json` file contains the following:
-```json
+```
 {
   ...
   "actions": {
