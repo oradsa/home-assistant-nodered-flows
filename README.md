@@ -1,4 +1,4 @@
-# Home Assistant NodeRED flows
+# Home Assistant Node-RED flows
 Extending [Home Assistant](http://home-assistant.io) by [Node-RED](http://nodered.org) flows.
 
 ## Features
