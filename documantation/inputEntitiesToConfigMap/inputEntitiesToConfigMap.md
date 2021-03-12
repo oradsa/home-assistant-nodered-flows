@@ -5,7 +5,7 @@ The `inputEntitiesToConfigMap` property in the `nodered-configuration.json` file
 ## Configuration
    
 &nbsp;**inputEntitiesToConfigMap** &nbsp; *object* <br>
-&nbsp;&nbsp;&nbsp; Dictionary/hashmap from the input entity id to the path of the property which it control.
+&nbsp; Dictionary/hashmap from the input entity id to the path of the property which it control.
 
 **Notice**: The name of the input entity must begin with `nr_config_`, e.g. for input_boolean, use a name like `input_boolean.nr_config_xxx`. 
 
