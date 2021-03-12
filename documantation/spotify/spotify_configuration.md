@@ -68,7 +68,7 @@ You can assist [this guide](https://developers.google.com/web/tools/chrome-devto
 "spotify": {
   "default": "my_spotify",
   "my_spotify": {
-    "entityId": "media_player.spotify",
+    "defaultDevice": "MySpotifySpeaker",
     "authorization": {
       "type": "api_token|web_player_token",
       "clientId": "in case you use 'api_token' authorization type",
