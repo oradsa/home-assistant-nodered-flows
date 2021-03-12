@@ -1,0 +1,1415 @@
+[
+    {
+        "id": "4eeba49b.667c6c",
+        "type": "tab",
+        "label": "HA Events",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "732fa8c4.ee2688",
+        "type": "server-events",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "server": "c502bde5.d2724",
+        "event_type": "nodered_execute",
+        "exposeToHomeAssistant": false,
+        "haConfig": [
+            {
+                "property": "name",
+                "value": ""
+            },
+            {
+                "property": "icon",
+                "value": ""
+            }
+        ],
+        "x": 150,
+        "y": 800,
+        "wires": [
+            [
+                "207701de.de859e"
+            ]
+        ]
+    },
+    {
+        "id": "f99e5ba5.29a558",
+        "type": "trigger-state",
+        "z": "4eeba49b.667c6c",
+        "name": "Alarm clock changed",
+        "server": "c502bde5.d2724",
+        "exposeToHomeAssistant": false,
+        "haConfig": [
+            {
+                "property": "name",
+                "value": ""
+            },
+            {
+                "property": "icon",
+                "value": ""
+            }
+        ],
+        "entityid": "^sensor\\..+_next_alarm$",
+        "entityidfiltertype": "regex",
+        "debugenabled": false,
+        "constraints": [],
+        "constraintsmustmatch": "all",
+        "outputs": 2,
+        "customoutputs": [],
+        "outputinitially": false,
+        "state_type": "str",
+        "x": 140,
+        "y": 440,
+        "wires": [
+            [
+                "8c17075c.9d3418"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "fefc006a.98cba",
+        "type": "calendar-trigger",
+        "z": "4eeba49b.667c6c",
+        "name": "Alarm triggered",
+        "x": 540,
+        "y": 440,
+        "wires": [
+            [
+                "88bd1409.de7cb8"
+            ]
+        ]
+    },
+    {
+        "id": "8c17075c.9d3418",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Set next alarm time",
+        "func": "const helpers = global.get('helpers');\nconst alarmName = helpers.getEntityId(msg.data.event);\nconst config = global.get(`configuration.events.alarm.${alarmName}`);\nif (!config) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`alarm not configured: ${alarmName}`});\n    return;\n}\n\nconst alarm = new Date(msg.payload);\nconst nextAlarm = flow.get(`alarm.${alarmName}.next`);\nconst minDiff = (config.snoozeMinutesToTreatAsSameAlarm || 15) * 60000;\nif (config.offsetMinutes > 0 && nextAlarm < alarm && \n    nextAlarm.getTime() - (config.offsetMinutes || 0) * 60000 <= new Date() && \n    new Date().getTime() - nextAlarm.getTime() <= minDiff) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`ignored as in previous alarm range, ${alarm.toLocaleString()}`});\n    return null;\n}\nflow.set(`alarm.${alarmName}.next`, undefined);\n\nif (msg.data.event.new_state.attributes.Package && \n    !['alarm', 'clock'].some(x => msg.data.event.new_state.attributes.Package.includes(x))) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`not an alarm: ${msg.data.event.new_state.attributes.Package}`});\n    return null;\n}\n\nif (config.minimumHour > alarm.getHours() || config.maximumHour < alarm.getHours()) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`not in allowed time, ${alarm.toLocaleString()}`});\n    return null;\n}\n\nconst lastHandledAlarm = flow.get(`alarm.${alarmName}.lastHandled`);\nif (lastHandledAlarm && alarm.getTime() - lastHandledAlarm.getTime() <= minDiff) {\n    flow.set(`alarm.${alarmName}.lastHandled`, alarm);\n    node.status({fill:\"grey\",shape:\"dot\",text:`skippped, ${alarm.toLocaleString()}`});\n    return null;\n}\n\nconst offsetFromAlarm = new Date(alarm.getTime() + (config.offsetMinutes || 0) * 60000).getTime();\nconst actualAlarm = new Date(Math.max(offsetFromAlarm, new Date().getTime() + 5000));\nmsg.alarmName = alarmName;\nmsg.actualAlarm = actualAlarm;\nmsg.dates = [\n    actualAlarm\n];\nflow.set(`alarm.${alarmName}.next`, actualAlarm);\nnode.status({fill:\"green\",shape:\"dot\",text:`${alarmName} set to ${actualAlarm.toLocaleString()}`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 350,
+        "y": 440,
+        "wires": [
+            [
+                "fefc006a.98cba"
+            ]
+        ]
+    },
+    {
+        "id": "c1137336.745cc",
+        "type": "trigger-state",
+        "z": "4eeba49b.667c6c",
+        "name": "Person location changed",
+        "server": "c502bde5.d2724",
+        "exposeToHomeAssistant": false,
+        "haConfig": [
+            {
+                "property": "name",
+                "value": ""
+            },
+            {
+                "property": "icon",
+                "value": ""
+            }
+        ],
+        "entityid": "^person\\..+$",
+        "entityidfiltertype": "regex",
+        "debugenabled": false,
+        "constraints": [],
+        "constraintsmustmatch": "all",
+        "outputs": 2,
+        "customoutputs": [],
+        "outputinitially": false,
+        "state_type": "str",
+        "x": 150,
+        "y": 320,
+        "wires": [
+            [
+                "984e76aa.af76c8"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "207701de.de859e",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Parse event params & domain",
+        "func": "if (msg.payload.event &&\n    typeof msg.payload.event.params === 'string') {\n  msg.payload.event.params = JSON.parse(msg.payload.event.params);\n}\nconst domainEnd = msg.payload.event.action.indexOf('.');\nmsg.payload.event.domain = domainEnd > 0 ? msg.payload.event.action.substr(0, domainEnd) : null;\nmsg.payload = msg.payload.event;\nmsg.payload.event = Object.assign({}, msg.payload);\nnode.status({fill:\"green\",shape:\"dot\",text:`${msg.payload.action}, ${new Date().toLocaleString()}`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 410,
+        "y": 800,
+        "wires": [
+            [
+                "901a4039.ecfd9"
+            ]
+        ]
+    },
+    {
+        "id": "859c5f63.5d1cd",
+        "type": "watch",
+        "z": "4eeba49b.667c6c",
+        "name": "File updated",
+        "files": "/config/nodered-configuration.json",
+        "recursive": "",
+        "x": 110,
+        "y": 120,
+        "wires": [
+            [
+                "b31c223a.5cadf"
+            ]
+        ]
+    },
+    {
+        "id": "3af1f42c.baa6ec",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Load configuration",
+        "func": "const helpers = global.get('helpers');\nconst getConfigValue = (entityId, state) => {\n    const configItemType = helpers.getEntityDomain(entityId).replace('input_', '');\n    switch (configItemType) {\n        case 'boolean':\n            return state === 'on';\n        case 'number':\n            return parseInt(state);\n    }\n    return state; \n};\nconst getInputUpdateService = (entity, configItemName) => {\n    if (!entity || !configItemName)\n        return null;\n    const configValue = global.get(`configuration.${configItemName}`);\n    if (configValue === getConfigValue(entity.entity_id, entity.state)) \n        return null;\n    const domain = helpers.getEntityDomain(entity);\n    const service = {\n        domain: domain,\n        data: { entity_id: entity.entity_id }\n    };\n    switch (domain) {\n        case 'input_boolean':\n            service.service = configValue ? 'turn_on' : 'turn_off';\n            return service;\n        case 'input_number':\n        case 'input_text':\n            service.service = 'set_value';\n            service.data.value = configValue;\n            return service;\n        case 'input_select':\n            service.service = 'select_option';\n            service.data.option = configValue;\n            return service;\n    }\n    node.error(`Unknown domain (${domain}) or state (${entity.state})`);\n    return null;\n};\n\nmsg.payload = JSON.parse(msg.payload);\nglobal.set('configuration', msg.payload);\n\nconst inputEntities = global.get('configuration.inputEntitiesToConfigMap') || {};\nconst entities = global.get('homeassistant.homeAssistant.states');\nconst servicesToCall = Object.keys(inputEntities)\n                             .map(x => getInputUpdateService(entities[x], inputEntities[x]))\n                             .filter(x => !!x);\n\nnode.status({fill:\"green\",shape:\"dot\",text:\"loaded, \"+ new Date().toLocaleString()});\nreturn [ servicesToCall.map(x => ({ payload: x })), msg ];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "const helpers = {\n    isActive: x => x && (typeof(x.active) === 'undefined' || !!x.active) && \n                        (typeof(x.activate) === 'undefined' || !!x.activate),\n    isMatch: (questioned, actual, options = {}) => {\n        const {\n            matchFunc = (x, y) => x === y, \n            arrayMatchFunc = Array.prototype.some, \n            defaultResult = true\n        } = options;\n        if (!questioned)\n            return defaultResult;\n        if (Array.isArray(questioned))\n            return !!arrayMatchFunc.call(questioned, x => helpers.isMatch(x, actual, options));\n        if (typeof(questioned) === 'object' && typeof(actual) === 'object')\n            return Object.keys(questioned).every(x => helpers.isMatch(questioned[x], actual[x], options));\n        return matchFunc(questioned, actual);\n    },\n    includesCaseInsensitive: (x, y) => x && y && x.toLowerCase().includes(y.toLowerCase()),\n    filterProperties: (obj, filter, subFilter) => {\n        subFilter = subFilter || (x => x);\n        return Object.keys(obj).filter(x => filter(x, obj[x]))\n                               .map(x => ({ key: x, value: subFilter(obj[x]) }))\n                               .filter(x => typeof(x.value) !== 'object' || Object.keys(x.value).length > 0)\n                               .reduce((res, curr) => (res[curr.key] = curr.value) && res, {});\n    },\n    generateRandomSuffix: () => 'xxxx'.replace(/[xy]/g, function(c) {\n        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);\n        return v.toString(16);\n    }),\n    makeExpirable: (object, options) => {\n        object.createdAt = new Date();\n        const minutesToExpire = options.minutesToExpire || ((options.hoursToExpire || 0) * 60);\n        object.expiresAt = minutesToExpire > 0 ? new Date(object.createdAt.setMinutes(object.createdAt.getMinutes() + minutesToExpire)) : undefined;\n        return object;\n    },\n    isExpired: object => object.expiresAt && object.expiresAt > new Date(),\n    \n    getEntityDomain: entityOrId => (typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId).split('.')[0],\n    getEntityId: entityOrId => (typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId).split('.')[1],\n    getEntity: (id) => global.get('homeassistant.homeAssistant.states')[id],\n    getEntityState: (id) => { const entity = helpers.getEntity(id); return entity && entity.state; },\n    getEntities: (domain, state, {attributes, attributesMatchFunc, attributesNegateMatch} = {}) => {\n        const entities = global.get('homeassistant.homeAssistant.states');\n        const attributesMatchOptions = attributesNegateMatch ? { matchFunc: !attributesMatchFunc ? (x, y) => x !== y \n                                                                                                 : (x, y) => !attributesMatchFunc(x, y), \n                                                                 arrayMatchFunc: Array.prototype.every }\n                                                             : { matchFunc: attributesMatchFunc };\n        return Object.keys(entities).map(x => entities[x])\n                     .filter(x => x && helpers.isMatch(domain, helpers.getEntityDomain(x)) && \n                                  helpers.isMatch(state, x.state) && \n                                  helpers.isMatch(attributes, x.attributes, attributesMatchOptions));\n    },\n    getEntityIds: (domain, state, options) => {\n        return helpers.getEntities(domain, state, options).map(x => x.entity_id);\n    },\n    getServices: ({domain, service}) => {\n        return helpers.filterProperties(global.get('homeassistant.homeAssistant.services'),\n                                        d => !domain || d === domain,\n                                        d => helpers.filterProperties(d, x => !service || x === service));\n    },\n    buildServiceCall: (entityOrId, service, data) => ({\n        domain: helpers.getEntityDomain(entityOrId),\n        service: service,\n        data: Object.assign(data || {}, {\n            entity_id: typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId\n        })\n    }),\n    buildServiceCalls: (entitiesOrIds, service, data) => entitiesOrIds.map(x => helpers.buildServiceCall(x, service, data)),\n    buildServiceCallFromState: (entityOrId, state) => {\n        switch (helpers.getEntityDomain(entityOrId)) {\n            case 'switch':\n                return helpers.buildServiceCall(entityOrId, `turn_${state}`);\n            default:\n                return null;\n        }\n    },\n    buildLogbookLog: (name, message, entityId) => ({\n        payload: {\n            domain: 'logbook',\n            service: 'log',\n            data: { name, message, entity_id: entityId }\n        }\n    }),\n    createSubContext: (context, prefix) => ({\n        get: (key) => context.get(`${prefix}.${key}`),\n        set: (key, value) => context.set(`${prefix}.${key}`, value)\n    }),\n    getPersonPhoneWifiConnection: person => {\n        if (typeof(person) === 'string') person = helpers.getEntity(person);\n        if (!person) return null;\n        const deviceTracker = person.attributes.source;\n        const deviceWifiEntityId = deviceTracker && deviceTracker.startsWith('device_tracker.') && \n                                   (deviceTracker.replace('device_tracker.', 'sensor.') + '_wifi_connection');\n        return !!deviceWifiEntityId ? helpers.getEntity(deviceWifiEntityId) : null;\n    },\n    isPersonAtHome: person => {\n        if (typeof(person) === 'string') person = helpers.getEntity(person);\n        if (!person) return false\n        if (person.state === 'home') return true;\n        const presenceConfig = global.get('configuration.events.presence') || {};\n        const phoneWifi = helpers.getPersonPhoneWifiConnection(person);\n        return phoneWifi && (presenceConfig.homeWifiNetworks || [presenceConfig.homeWifiNetwork]).includes(phoneWifi.state);\n    }\n};\nglobal.set('helpers', helpers);\n",
+        "finalize": "",
+        "x": 510,
+        "y": 80,
+        "wires": [
+            [
+                "3c2ea221.28ab3e"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "510706dc.9d7ab8",
+        "type": "inject",
+        "z": "4eeba49b.667c6c",
+        "name": "Auto start",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 80,
+        "wires": [
+            [
+                "b31c223a.5cadf"
+            ]
+        ]
+    },
+    {
+        "id": "b31c223a.5cadf",
+        "type": "file in",
+        "z": "4eeba49b.667c6c",
+        "name": "Configuration file",
+        "filename": "/config/nodered-configuration.json",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "x": 310,
+        "y": 80,
+        "wires": [
+            [
+                "3af1f42c.baa6ec"
+            ]
+        ]
+    },
+    {
+        "id": "984e76aa.af76c8",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Set zone change actions",
+        "func": "const currentLocation = msg.data.event.new_state.state;\nconst previousLocation = msg.data.event.old_state.state;\nif (currentLocation === previousLocation) return;\n\nconst helpers = global.get('helpers');\nconst config = global.get('configuration.events.presence') || {};\n\nconst phoneWifi = helpers.getPersonPhoneWifiConnection(msg.data.event.new_state);\nphoneWifi && flow.set(`presence.${helpers.getEntityId(phoneWifi)}`, undefined);\n\nconst person = helpers.getEntityId(msg.data.event.new_state);\nlet msgs = [];\nif (currentLocation !== 'away') {\n    const personConfig = config[person] || config[person.toLowerCase()];\n    const zoneConfig = personConfig && (personConfig[currentLocation] || personConfig[currentLocation.toLowerCase()]);\n    if (zoneConfig) {\n        msgs.push({\n            ...msg,\n            ...zoneConfig,\n            context: helpers.createSubContext(context, person)\n        });\n    }\n    if (helpers.getEntities('person', currentLocation).length <= 1 && config.anyone) {\n        const firstAtZoneConfig = config.anyone[currentLocation];\n        firstAtZoneConfig && msgs.push({\n            ...msg,\n            ...firstAtZoneConfig,\n            context: context\n        });\n    }\n    node.status({fill:\"green\",shape:\"dot\",text:`${person} identified at ${currentLocation}, ${new Date().toLocaleString()}`});\n}\nif (previousLocation === 'home') {\n    if (phoneWifi && (config.homeWifiNetworks || [config.homeWifiNetwork]).includes(phoneWifi.state)) {\n        node.status({fill:\"grey\",shape:\"dot\",text:`${person} is still connected to wifi home network`});\n        flow.set(`presence.${helpers.getEntityId(phoneWifi)}`, 'pending_not_home');\n    }\n    else {\n        const personConfig = config[person] || config[person.toLowerCase()];\n        if (personConfig && personConfig.away) {\n            msgs.push({\n                ...msg,\n                ...personConfig.away,\n                context: helpers.createSubContext(context, person)\n            });\n        }\n        if (helpers.getEntities('person', 'home').length === 0 && config.everyone && config.everyone.away) {\n            msgs.push({\n                ...msg,\n                ...config.everyone.away,\n                context: context\n            });\n        }\n        node.status({fill:\"blue\",shape:\"dot\",text:`${person} identified as away, ${new Date().toLocaleString()}`});\n    }\n}\nreturn msgs;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 410,
+        "y": 320,
+        "wires": [
+            [
+                "708034eb.e4e69c"
+            ]
+        ]
+    },
+    {
+        "id": "a0dc990d.348dd8",
+        "type": "comment",
+        "z": "4eeba49b.667c6c",
+        "name": "Load global configuration & helpers",
+        "info": "",
+        "x": 180,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "901a4039.ecfd9",
+        "type": "switch",
+        "z": "4eeba49b.667c6c",
+        "name": "Switch on domain",
+        "property": "payload.domain",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "spotify",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "events",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 650,
+        "y": 800,
+        "wires": [
+            [
+                "8e53cbbf.ead748"
+            ],
+            [
+                "281904f9.21c77c"
+            ],
+            [
+                "c18034b9.621da8"
+            ]
+        ]
+    },
+    {
+        "id": "c18034b9.621da8",
+        "type": "debug",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 850,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "88bd1409.de7cb8",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Validate alarm",
+        "func": "const config = global.get(`configuration.events.alarm.${msg.alarmName}`);\nconst helpers = global.get('helpers');\nconst markAsHandled = () => {\n    flow.set(`alarm.${msg.alarmName}.next`, undefined);\n    flow.set(`alarm.${msg.alarmName}.lastHandled`, new Date());\n};\n\nif (!helpers.isActive(config)) {\n    markAsHandled();\n    node.status({fill:\"grey\",shape:\"dot\",text:`alarm not active, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nif (msg.actualAlarm !== flow.get(`alarm.${msg.alarmName}.next`)) {\n    return null;\n}\n\nconst restrictions = config.restrictions || config.actions.restrictions || {};\nif (typeof(restrictions.mustBeAtHome) === 'undefined') {\n    const relevantPerson = helpers.getEntities('person')\n                                  .find(x => msg.alarmName.startsWith(helpers.getEntityId(x.attributes.source)));\n    restrictions.mustBeAtHome = (relevantPerson && [helpers.getEntityId(relevantPerson)]) || true;\n}\n\nmsg.actions = config.actions;\nmsg.restrictions = restrictions;\nmsg.context = helpers.createSubContext(context, msg.alarmName);\nmarkAsHandled();\nnode.status({fill:\"green\",shape:\"dot\",text:`triggered, ${new Date().toLocaleString()}`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 720,
+        "y": 440,
+        "wires": [
+            [
+                "7c6c9ed6.17d81"
+            ]
+        ]
+    },
+    {
+        "id": "7c6c9ed6.17d81",
+        "type": "link out",
+        "z": "4eeba49b.667c6c",
+        "name": "Alarm clock action",
+        "links": [
+            "1d0ae548.8bd06b"
+        ],
+        "x": 835,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "871ff19f.18cbd",
+        "type": "inject",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\t  \"event\": {\t    \"action\": \"spotify.switch_device\",\t    \"params\": '{\"device\": \"Bedroom\"}'\t  }\t}",
+        "payloadType": "jsonata",
+        "x": 210,
+        "y": 840,
+        "wires": [
+            [
+                "207701de.de859e"
+            ]
+        ]
+    },
+    {
+        "id": "3c2ea221.28ab3e",
+        "type": "api-call-service",
+        "z": "4eeba49b.667c6c",
+        "name": "Update config input entities",
+        "server": "c502bde5.d2724",
+        "version": 1,
+        "debugenabled": false,
+        "service_domain": "",
+        "service": "",
+        "entityId": "",
+        "data": "",
+        "dataType": "json",
+        "mergecontext": "",
+        "output_location": "",
+        "output_location_type": "none",
+        "mustacheAltTags": false,
+        "x": 740,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "494c58cc.6661e8",
+        "type": "trigger-state",
+        "z": "4eeba49b.667c6c",
+        "name": "Input entity changed",
+        "server": "c502bde5.d2724",
+        "exposeToHomeAssistant": false,
+        "haConfig": [
+            {
+                "property": "name",
+                "value": ""
+            },
+            {
+                "property": "icon",
+                "value": ""
+            }
+        ],
+        "entityid": "^input_[a-z]+\\.nr_config_.+$",
+        "entityidfiltertype": "regex",
+        "debugenabled": false,
+        "constraints": [],
+        "constraintsmustmatch": "all",
+        "outputs": 2,
+        "customoutputs": [],
+        "outputinitially": false,
+        "state_type": "str",
+        "x": 140,
+        "y": 160,
+        "wires": [
+            [
+                "9968e7d9.a47158"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "9968e7d9.a47158",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Update configuration setting",
+        "func": "const helpers = global.get('helpers');\nconst getConfigValue = (entityId, state) => {\n    const configItemType = helpers.getEntityDomain(entityId).replace('input_', '');\n    switch (configItemType) {\n        case 'boolean':\n            return state === 'on';\n        case 'number':\n            return parseInt(state);\n    }\n    return state;\n};\n\n\nconst configItemName = (global.get('configuration.inputEntitiesToConfigMap') || {})[msg.data.event.entity_id];\nif (!configItemName) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not a config item: ${msg.data.event.entity_id}`});\n    return null;\n}\n    \nconst newState = msg.data.event.new_state.state;\nconst oldState = msg.data.event.old_state.state;\nif (newState === oldState) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not changed: ${configItemName}`});\n    return null;\n}\n\nconst value = getConfigValue(msg.data.event.entity_id, newState);\nconst valueFromConfig = global.get(`configuration.${configItemName}`);\nif (typeof(valueFromConfig) !== typeof(value)) {\n    node.error(`Can't update '${configItemName} from '${valueFromConfig}' (${typeof(valueFromConfig)}) to '${value}' (${typeof(value)})`);\n    node.status({fill:\"red\",shape:\"dot\",text:`can't update: ${configItemName}`});\n    return null;\n}\nif (value === valueFromConfig) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not updated: ${configItemName}`});\n    return null;\n}\n\nglobal.set(`configuration.${configItemName}`, value);\nmsg.payload = JSON.stringify(global.get('configuration'), null, 4);\nnode.status({fill:\"green\",shape:\"dot\",text:`${configItemName} = ${value}, ${new Date().toLocaleString()}`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 380,
+        "y": 160,
+        "wires": [
+            [
+                "ebe57877.977928"
+            ]
+        ]
+    },
+    {
+        "id": "ebe57877.977928",
+        "type": "file",
+        "z": "4eeba49b.667c6c",
+        "name": "Overwrite configuration file",
+        "filename": "/config/nodered-configuration.json",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 640,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "34d10a91.65ea56",
+        "type": "trigger-state",
+        "z": "4eeba49b.667c6c",
+        "name": "Switch or timer state changed",
+        "server": "c502bde5.d2724",
+        "exposeToHomeAssistant": false,
+        "haConfig": [
+            {
+                "property": "name",
+                "value": ""
+            },
+            {
+                "property": "icon",
+                "value": ""
+            }
+        ],
+        "entityid": "^(switch|timer)\\..+$",
+        "entityidfiltertype": "regex",
+        "debugenabled": false,
+        "constraints": [],
+        "constraintsmustmatch": "all",
+        "outputs": 2,
+        "customoutputs": [],
+        "outputinitially": false,
+        "state_type": "str",
+        "x": 170,
+        "y": 680,
+        "wires": [
+            [
+                "496d3fef.e6627"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "496d3fef.e6627",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Apply on switch or timer with same name",
+        "func": "const currentState = msg.data.event.new_state.state;\nconst previousState = msg.data.event.old_state.state;\nif (currentState === previousState) return;\n\nconst helpers = global.get('helpers');\n\nconst entityId = msg.data.event.entity_id;\nconst domain = helpers.getEntityDomain(entityId);\nconst correspondingEntityId = entityId.replace(domain, domain === 'switch' ? 'timer' : 'switch');\nconst correspondingEntityState = helpers.getEntityState(correspondingEntityId);\nif (!correspondingEntityState) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`ignoring ${entityId}`});\n    return;\n}\n\nswitch (domain) {\n    case 'switch':\n        switch (currentState) {\n            case 'on':\n                node.status({fill:\"green\",shape:\"dot\",text:`starting ${correspondingEntityId}`});\n                return { payload: helpers.buildServiceCall(correspondingEntityId, 'start') };\n            case 'off':\n                if (correspondingEntityState === 'idle') return null;\n                node.status({fill:\"green\",shape:\"dot\",text:`cancelling ${correspondingEntityId}`});\n                return { payload: helpers.buildServiceCall(correspondingEntityId, 'cancel') };\n        }\n        break;\n    case 'timer':\n        switch (currentState) {\n            case 'idle':\n                if (correspondingEntityState === 'off') return null;\n                node.status({fill:\"green\",shape:\"dot\",text:`turning off ${correspondingEntityId}`});\n                return  { payload: helpers.buildServiceCall(correspondingEntityId, 'turn_off') };\n            case 'active':\n                if (correspondingEntityState === 'on') return null;\n                node.status({fill:\"green\",shape:\"dot\",text:`turning on ${correspondingEntityId}`});\n                return  { payload: helpers.buildServiceCall(correspondingEntityId, 'turn_on') };\n        }\n        break;\n    default:\n        node.status({fill:\"red\",shape:\"dot\",text:`unknown domain ${domain}`});\n        return null;\n}\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 480,
+        "y": 680,
+        "wires": [
+            [
+                "7a93c87e.6cf148"
+            ]
+        ]
+    },
+    {
+        "id": "7a93c87e.6cf148",
+        "type": "api-call-service",
+        "z": "4eeba49b.667c6c",
+        "name": "Call service",
+        "server": "c502bde5.d2724",
+        "version": 1,
+        "debugenabled": false,
+        "service_domain": "",
+        "service": "",
+        "entityId": "",
+        "data": "",
+        "dataType": "json",
+        "mergecontext": "",
+        "output_location": "",
+        "output_location_type": "none",
+        "mustacheAltTags": false,
+        "x": 730,
+        "y": 680,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d79731d9.32b",
+        "type": "trigger-state",
+        "z": "4eeba49b.667c6c",
+        "name": "Phone wifi network changed",
+        "server": "c502bde5.d2724",
+        "exposeToHomeAssistant": false,
+        "haConfig": [
+            {
+                "property": "name",
+                "value": ""
+            },
+            {
+                "property": "icon",
+                "value": ""
+            }
+        ],
+        "entityid": "^sensor\\..+_wifi_connection$",
+        "entityidfiltertype": "regex",
+        "debugenabled": false,
+        "constraints": [],
+        "constraintsmustmatch": "all",
+        "outputs": 2,
+        "customoutputs": [],
+        "outputinitially": false,
+        "state_type": "str",
+        "x": 160,
+        "y": 280,
+        "wires": [
+            [
+                "9566553f.c54938"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "9566553f.c54938",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Set as home / not home",
+        "func": "const currentWifi = msg.data.event.new_state.state;\nconst previousWifi = msg.data.event.old_state.state;\nif (currentWifi === previousWifi) return;\n\nconst config = global.get('configuration.events.presence');\nconst helpers = global.get('helpers');\n\nconst entityId = helpers.getEntityId(msg.data.event.entity_id);\nconst isHomeByWifi = (config.homeWifiNetworks || [config.homeWifiNetwork]).includes(currentWifi);\n\nconst persons = helpers.getEntities('person');\nif (persons.find(x => x.state === 'home')) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`already at home`});\n    flow.set(`presence.${entityId}`, undefined);\n    return null;\n}\n\nconst relevantPerson = persons.find(x => entityId.startsWith(helpers.getEntityId(x.attributes.source)));\nif (!relevantPerson) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no matching person found`});\n    return null;\n}\n\nmsg.data.event.old_state.entity_id = relevantPerson.entity_id;\nmsg.data.event.new_state.entity_id = relevantPerson.entity_id;\n\nif (!isHomeByWifi) {\n    if (flow.get(`presence.${entityId}`) === 'pending_not_home') {\n        msg.data.event.old_state.state = 'home';\n        msg.data.event.new_state.state = relevantPerson.state;\n        msg.payload = relevantPerson.state;\n        node.status({fill:\"green\",shape:\"dot\",text:`setting as ${relevantPerson.state}`});\n        flow.set(`presence.${entityId}`, undefined);\n        return msg;\n    }\n    node.status({fill:\"grey\",shape:\"dot\",text:`not home network`});\n    return null;\n}\n\nmsg.data.event.old_state.state = relevantPerson.state;\nmsg.data.event.new_state.state = 'home';\nmsg.payload = 'home';\nnode.status({fill:\"green\",shape:\"dot\",text:`setting as home`});\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 410,
+        "y": 280,
+        "wires": [
+            [
+                "984e76aa.af76c8"
+            ]
+        ]
+    },
+    {
+        "id": "8e53cbbf.ead748",
+        "type": "link out",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "links": [
+            "d2219b8e.44b458",
+            "afca09c.f3cf8f8"
+        ],
+        "x": 795,
+        "y": 780,
+        "wires": []
+    },
+    {
+        "id": "c2f53bb1.0a10a8",
+        "type": "schedex",
+        "z": "4eeba49b.667c6c",
+        "name": "schedex",
+        "passthroughunhandled": false,
+        "suspended": true,
+        "lat": "0",
+        "lon": "0",
+        "ontime": "",
+        "ontopic": "",
+        "onpayload": "",
+        "onoffset": "",
+        "onrandomoffset": 0,
+        "offtime": "",
+        "offtopic": "",
+        "offpayload": "",
+        "offoffset": 0,
+        "offrandomoffset": 0,
+        "mon": true,
+        "tue": true,
+        "wed": true,
+        "thu": true,
+        "fri": true,
+        "sat": true,
+        "sun": true,
+        "x": 580,
+        "y": 940,
+        "wires": [
+            [
+                "72d43a1e.f2fde4"
+            ]
+        ]
+    },
+    {
+        "id": "8225f0c4.390ad",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Set schedule",
+        "func": "const disableSchedule = () => {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no next schedule configured`});\n    msg.payload ={\n        suspended: true\n    };\n    return msg;\n};\nconst getScheduleTime = x => x.config.time || x.name;\n\nlet schedules = context.get('schedules');\n//calculating the next time each schedule will happen\nif (msg.topic !== 'info') {\n    const helpers = global.get('helpers');\n    const config = global.get(\"configuration.events.schedule\");\n    schedules = Object.keys(config || {})\n                      .map(x => ({ name: x, config: config[x] }))\n                      .filter(x => helpers.isActive(x.config));\n    schedules = schedules.filter(x => x.name !== msg.topic || Object.keys(schedules).length === 1);\n    if (!schedules.length) return disableSchedule();\n}\nelse { //msg.topic === 'info'\n    const lastCheckedSchedule = schedules.find(x => !x.nextTime) || {};\n    lastCheckedSchedule.nextTime = new Date(msg.payload.on);\n    if (!lastCheckedSchedule.nextTime) {\n        node.error(`Invalid schedule time: ${getScheduleTime(lastCheckedSchedule)}`);\n        schedules = schedules.filter(x => x.name !== lastCheckedSchedule.name);\n    }\n}\nif (schedules.length > 1) {\n    context.set('schedules', schedules);\n    const scheduleToCheck = schedules.find(x => !x.nextTime);\n    if (scheduleToCheck) {\n        node.status({fill:\"grey\",shape:\"dot\",text:`checking time of '${scheduleToCheck.name}'`});\n        const schedexConfigMsg ={\n            payload: { \n                suspended: false, \n                ontime: getScheduleTime(scheduleToCheck),\n                onoffset: scheduleToCheck.config.offsetMinutes || 0\n            }\n        };\n        const infoMsg = {\n            payload: 'info',\n            delay: 100\n        };\n        return [[ schedexConfigMsg, infoMsg ]];\n    }\n}\n\n//done checking all schedules - finding the next one\ncontext.set('schedules', undefined);\nif (!schedules.length) return disableSchedule();\nconst veryNextSchedule = schedules.sort((x, y) => x.nextTime - y.nextTime)[0];\nnode.status({fill:\"green\",shape:\"dot\",text:`'${veryNextSchedule.name}' is next`});\nmsg.payload = {\n    suspended: false,\n    ontime: getScheduleTime(veryNextSchedule),\n    ontopic: veryNextSchedule.name,\n    onoffset: veryNextSchedule.config.offsetMinutes || 0\n};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 310,
+        "y": 940,
+        "wires": [
+            [
+                "a57dd432.c09468"
+            ]
+        ]
+    },
+    {
+        "id": "bb8c38ba.182ae8",
+        "type": "complete",
+        "z": "4eeba49b.667c6c",
+        "name": "Configuration loaded",
+        "scope": [
+            "3af1f42c.baa6ec"
+        ],
+        "uncaught": false,
+        "x": 130,
+        "y": 940,
+        "wires": [
+            [
+                "8225f0c4.390ad"
+            ]
+        ]
+    },
+    {
+        "id": "72d43a1e.f2fde4",
+        "type": "switch",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "neq",
+                "v": "info",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "info",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 710,
+        "y": 940,
+        "wires": [
+            [
+                "8225f0c4.390ad",
+                "d97cbc54.d0c83"
+            ],
+            [
+                "8225f0c4.390ad"
+            ]
+        ]
+    },
+    {
+        "id": "a57dd432.c09468",
+        "type": "delay",
+        "z": "4eeba49b.667c6c",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 450,
+        "y": 940,
+        "wires": [
+            [
+                "c2f53bb1.0a10a8"
+            ]
+        ]
+    },
+    {
+        "id": "8d8ee206.e2d1e",
+        "type": "inject",
+        "z": "4eeba49b.667c6c",
+        "name": "Auto start",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "5",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 980,
+        "wires": [
+            [
+                "8225f0c4.390ad"
+            ]
+        ]
+    },
+    {
+        "id": "536adaaa.c7e9c4",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Save or restore state",
+        "func": "const statePreservation = msg.actions && (msg.actions.statePreservation || msg.actions.state_preservation);\nif (!statePreservation) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\nif (!msg.context) {\n    node.status({fill:\"red\",shape:\"dot\",text:`msg.context is missing`});\n    return\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nswitch (statePreservation.action) {\n    case 'save':\n        const statesToIgnore = statePreservation.statesToIgnore || ['off'];\n        const entitiesToSave = statePreservation.entities.filter(x => !statesToIgnore.includes(helpers.getEntityState(x)));\n        if (entitiesToSave.length === 0) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no entities to save`});\n            return;\n        }\n        const previousStateScene = `previous_state_autogenerated_${helpers.generateRandomSuffix()}`;\n        servicesToCall.push({\n            domain: 'scene',\n            service: 'create',\n            data: {\n                scene_id: previousStateScene,\n                snapshot_entities: entitiesToSave\n            }\n        });\n        const previousState = { sceneId: `scene.${previousStateScene}` }\n        msg.context.set('statePreservation.previousState', helpers.makeExpirable(previousState, statePreservation));\n        node.status({fill:\"blue\",shape:\"dot\",text:`state saved, ${new Date().toLocaleString()}`});\n        break;\n    case 'restore':\n    const stateToRestore = msg.context.get('statePreservation.previousState');\n        if (!stateToRestore) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no state to restore`});\n            return;\n        }\n        if (!helpers.isExpired(stateToRestore)) {\n            servicesToCall.push(helpers.buildServiceCall(stateToRestore.sceneId, 'turn_on'));\n            Array.prototype.push.apply(servicesToCall, stateToRestore.sericesToCall || []);\n            node.status({fill:\"green\",shape:\"dot\",text:`state restored, ${new Date().toLocaleString()}`});\n        }\n        else {\n            node.status({fill:\"grey\",shape:\"dot\",text:`saved state is expired, ${new Date().toLocaleString()}`});\n        }\n        servicesToCall.push({\n            domain: 'scene',\n            service: 'reload'\n        });\n        msg.context.set('statePreservation.previousState', undefined);\n        break;\n    default:\n        node.status({fill:\"red\",shape:\"dot\",text:`unsupported action: '${statePreservation.action}'`});\n        return;\n}\n\nreturn [ \n    servicesToCall.map(x => ({ \n        payload: x ,\n        delay: (statePreservation.offsetSeconds || 0) * 1000\n    }))\n];",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 460,
+        "y": 1380,
+        "wires": [
+            [
+                "45a5b024.2d13e"
+            ]
+        ]
+    },
+    {
+        "id": "1d0ae548.8bd06b",
+        "type": "link in",
+        "z": "4eeba49b.667c6c",
+        "name": "Perform actions",
+        "links": [
+            "708034eb.e4e69c",
+            "dc81e24d.7dbdc",
+            "e9d15f94.032b4",
+            "7c6c9ed6.17d81",
+            "325c5a2e.5da9a6",
+            "d47b15f0.8bcbb8",
+            "f6cd8e31.5b606"
+        ],
+        "x": 55,
+        "y": 1140,
+        "wires": [
+            [
+                "96d3c3ff.a824f"
+            ]
+        ]
+    },
+    {
+        "id": "6ee57d21.8fb964",
+        "type": "api-call-service",
+        "z": "4eeba49b.667c6c",
+        "name": "Call service",
+        "server": "c502bde5.d2724",
+        "version": 1,
+        "debugenabled": false,
+        "service_domain": "",
+        "service": "",
+        "entityId": "",
+        "data": "",
+        "dataType": "json",
+        "mergecontext": "",
+        "output_location": "",
+        "output_location_type": "none",
+        "mustacheAltTags": false,
+        "x": 1010,
+        "y": 1220,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "45a5b024.2d13e",
+        "type": "delay",
+        "z": "4eeba49b.667c6c",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 750,
+        "y": 1220,
+        "wires": [
+            [
+                "691bd888.7315d8"
+            ]
+        ]
+    },
+    {
+        "id": "708034eb.e4e69c",
+        "type": "link out",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "links": [
+            "1d0ae548.8bd06b"
+        ],
+        "x": 555,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "1850fd9b.bf8772",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Apply scenes",
+        "func": "const scenes = msg.actions && (msg.actions.scenes || msg.actions.scene);\nif (!scenes) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\n(Array.isArray(scenes) ? scenes : [scenes]).forEach(scene => {\n    if (typeof(scene) === 'string') {\n        servicesToCall.push({ payload: helpers.buildServiceCall(scene, 'turn_on') });\n    }\n    else {\n        Array.prototype.push.apply(servicesToCall, (scene.names || [scene.name]).map(x => ({ \n            payload: helpers.buildServiceCall(x, 'turn_on'),\n            delay: (scene.offsetSeconds || 0) * 1000\n        })));\n    }\n});\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} scene(s) applied, ${new Date().toLocaleString()}`});\n\nreturn [ servicesToCall ];",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 430,
+        "y": 1260,
+        "wires": [
+            [
+                "45a5b024.2d13e"
+            ]
+        ]
+    },
+    {
+        "id": "59fb33f6.978d9c",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Pause or resume media players",
+        "func": "const media = msg.actions && (msg.actions.media || msg.actions.mediaPlayer || msg.actions.media_player);\nif (!media) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\nif (!msg.context) {\n    node.status({fill:\"red\",shape:\"dot\",text:`msg.context is missing`});\n    return\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nswitch (media.action) {\n    case 'pause':\n        const playersToFilter = media.players || (media.player && [media.player]);\n        const playingMediaPlayers =\n                helpers.getEntityIds('media_player', 'playing', \n                                     {\n                                         attributes: { source: media.playerSourceNotContains || [] }, \n                                         attributesMatchFunc: (x, y) => helpers.includesCaseInsensitive(y, x),\n                                         attributesNegateMatch: true\n                                     })\n                       .filter(x => (!playersToFilter || playersToFilter.includes(x)) && \n                                    x !== msg.entity.entity_id);\n        if (playingMediaPlayers.length === 0) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no relevant player is playing`});\n            return;\n        }\n        Array.prototype.push.apply(servicesToCall, helpers.buildServiceCalls(playingMediaPlayers, 'media_pause'));\n        const previousState = { pausedPlayers: playingMediaPlayers };\n        msg.context.set('media.previousState', helpers.makeExpirable(previousState, media));\n        node.status({fill:\"green\",shape:\"dot\",text:`${playingMediaPlayers.length} player(s) paused, ${new Date().toLocaleString()}`});\n        break;\n    case 'resume':\n        const stateToRestore = msg.context.get('media.previousState');\n        if (!stateToRestore) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no player to resume`});\n            return;\n        }\n        if (!helpers.isExpired(stateToRestore)) {\n            Array.prototype.push.apply(servicesToCall, helpers.buildServiceCalls(stateToRestore.pausedPlayers, 'media_play'));\n            node.status({fill:\"green\",shape:\"dot\",text:`${stateToRestore.pausedPlayers.length} player(s) resumed, ${new Date().toLocaleString()}`});\n        }\n        else {\n            node.status({fill:\"grey\",shape:\"dot\",text:`saved state is expired, ${new Date().toLocaleString()}`});\n        }\n        msg.context.set('media.previousState', undefined);\n        break;\n    default:\n        node.status({fill:\"red\",shape:\"dot\",text:`unsupported action: '${media.action}'`});\n        return;\n}\n\nreturn [ \n    servicesToCall.map(x => ({ \n        payload: x ,\n        delay: (media.offsetSeconds || 0) * 1000\n    }))\n];",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 490,
+        "y": 1440,
+        "wires": [
+            [
+                "45a5b024.2d13e"
+            ]
+        ]
+    },
+    {
+        "id": "96d3c3ff.a824f",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "preparations & filter",
+        "func": "const helpers = global.get('helpers');\n\nif (msg.actions && (typeof(msg.actions) === 'string' || \n                    (helpers.isActive(msg.actions) && typeof(msg.actions.reference) === 'string'))) {\n    const reference = msg.actions.reference || msg.actions;\n    msg.actions = global.get(`configuration.${reference.startsWith('actions.') ? 'actions.' : ''}${reference}`);\n}\n\nif (!msg.actions) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`actions not available`});\n    return;\n}\n\nmsg.actions = helpers.filterProperties(msg.actions,\n                                       (_, x) => helpers.isActive(x),\n                                       o => helpers.filterProperties(o, (_, x) => helpers.isActive(x)));\nif ((!helpers.isActive(msg.actions) && !msg.forceExecution) || Object.keys(msg.actions).length === 0) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions to perform`});\n    return;\n}\nconst restrictions = msg.restrictions || msg.actions.restrictions || {};\nif (restrictions.mustBeAtHome) {\n    const isMatchingPerson = x => restrictions.mustBeAtHome === true || \n           (Array.isArray(restrictions.mustBeAtHome) && restrictions.mustBeAtHome.includes(helpers.getEntityId(x))) || \n           (typeof(restrictions.mustBeAtHome) === 'string' && RegExp(restrictions.mustBeAtHome).test(helpers.getEntityId(x)));\n    if (!helpers.getEntities('person').find(x => isMatchingPerson(x) && helpers.isPersonAtHome(x))) {\n        node.status({fill:\"grey\",shape:\"dot\",text:`no person is at home`});\n        return;\n    }\n}\n\nmsg.delay = (msg.actions.offsetSeconds || 0) * 1000;\nmsg.entity = msg.entity || (msg.data && msg.data.event && msg.data.event.new_state) || {};\nmsg.entity.attributes = msg.entity.attributes || {};\nconst entityId = msg.entity.entity_id || 'entity.unknown';\nconst entityName = msg.entity.attributes.friendly_name || entityId;\nconst state = msg.entity.state || '(unknown state)';\nconst actionsDescription = Object.keys(msg.actions).filter(x => x !== 'restrictions')\n                                 .map(x => msg.actions[x].action ? `${x}.${msg.actions[x].action}` : x).join(', ');\nconst singleAction = Object.keys(msg.actions).length === 1;\nconst logbookText = `change to '${state}' raised action${singleAction ? '' : 's'} of type ${actionsDescription} by Node-RED`;\nconst logbookMsg = helpers.buildLogbookLog(entityName, logbookText, entityId);\nnode.status({fill:\"green\",shape:\"dot\",\n             text:`handing ${entityId} change to ${state}, ${new Date().toLocaleString()}`});\nreturn [ msg, logbookMsg ];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 190,
+        "y": 1140,
+        "wires": [
+            [
+                "690f05d6.a76edc",
+                "922ef689.b20fc8"
+            ],
+            [
+                "f92588d3.a38148"
+            ]
+        ]
+    },
+    {
+        "id": "690f05d6.a76edc",
+        "type": "delay",
+        "z": "4eeba49b.667c6c",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 230,
+        "y": 1220,
+        "wires": [
+            [
+                "536adaaa.c7e9c4",
+                "1850fd9b.bf8772",
+                "59fb33f6.978d9c",
+                "2f7fde7f.a25c32",
+                "849da022.0e8d8",
+                "a481e95b.587f58",
+                "c193b987.194388",
+                "3b5dcbc6.e408d4"
+            ]
+        ]
+    },
+    {
+        "id": "bce03dce.f5ccd",
+        "type": "trigger-state",
+        "z": "4eeba49b.667c6c",
+        "name": "Entity state changed",
+        "server": "c502bde5.d2724",
+        "exposeToHomeAssistant": false,
+        "haConfig": [
+            {
+                "property": "name",
+                "value": ""
+            },
+            {
+                "property": "icon",
+                "value": ""
+            }
+        ],
+        "entityid": ".*",
+        "entityidfiltertype": "regex",
+        "debugenabled": false,
+        "constraints": [],
+        "constraintsmustmatch": "all",
+        "outputs": 2,
+        "customoutputs": [],
+        "outputinitially": false,
+        "state_type": "str",
+        "x": 140,
+        "y": 560,
+        "wires": [
+            [
+                "2955fa6c.84f086"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "2955fa6c.84f086",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Find matching state actions",
+        "func": "const entityId = msg.data.event.entity_id;\nconst currentState = msg.data.event.new_state && msg.data.event.new_state.state;\nconst previousState = msg.data.event.old_state && msg.data.event.old_state.state;\nif (currentState === previousState || typeof(currentState) === 'undefined' || typeof(previousState) === 'undefined') return;\n\nconst statesActions = global.get(`configuration.events.states.${entityId}`);\nif (!statesActions) return;\n\nconst actions = statesActions[currentState] || \n                (statesActions.allowRegex && \n                 statesActions[Object.keys(statesActions).find(x => RegExp(x).test(currentState))]);\nif (!actions) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no actions for  ${entityId}=${currentState}`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nmsg.actions = actions.actions || actions;\nmsg.restrictions = actions.restrictions;\nmsg.context = helpers.createSubContext(context, entityId);\nnode.status({fill:\"green\",shape:\"dot\",text:`sent actions for ${entityId}=${currentState} at ${new Date().toLocaleString()}`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 380,
+        "y": 560,
+        "wires": [
+            [
+                "dc81e24d.7dbdc"
+            ]
+        ]
+    },
+    {
+        "id": "dc81e24d.7dbdc",
+        "type": "link out",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "links": [
+            "1d0ae548.8bd06b"
+        ],
+        "x": 535,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "caacb58f.d90ef8",
+        "type": "comment",
+        "z": "4eeba49b.667c6c",
+        "name": "Handing actions (from all flows)",
+        "info": "",
+        "x": 170,
+        "y": 1100,
+        "wires": []
+    },
+    {
+        "id": "e9d15f94.032b4",
+        "type": "link out",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "links": [
+            "1d0ae548.8bd06b"
+        ],
+        "x": 975,
+        "y": 940,
+        "wires": []
+    },
+    {
+        "id": "922ef689.b20fc8",
+        "type": "debug",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 410,
+        "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "2f7fde7f.a25c32",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Spotify playback",
+        "func": "const spotify = msg.actions && msg.actions.spotify;\nif (!spotify) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet playMsgs = [];\nlet setDeviceMsgs = [];\nfor (const [key, value] of Object.entries(spotify)) {\n    if (helpers.isActive(value)) {\n        const playlists = value.playlists || (value.playlist && [value.playlist]);\n        const devices = value.devices || (value.device && [value.device]);\n        if (!playlists || !playlists.length || !devices || !devices.length) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`playlists or devices not set, ${new Date().toLocaleString()}`});\n            return null;\n        }\n        \n        const spotifyConfig = global.get(`configuration.spotify.${key}`);\n        const globalDelay = (value.offsetSeconds || 1) * 1000;\n        devices.forEach((device, i) => {\n            const filter = i > 0 && spotifyConfig ? () => helpers.getEntityState(spotifyConfig.entityId) === 'playing' : null;\n            let delay = (device.offsetSeconds || 0) * 1000 + globalDelay;\n            (device.volumeSteps || [device.volume]).forEach((volume, index) => {\n                if (index > 0) {\n                    delay += (device.volumeStepsDelayInSeconds || 0) * 1000;\n                }\n                setDeviceMsgs.push({\n                    user: key,\n                    device: device.name,\n                    volume: volume,\n                    delay: delay,\n                    filter: filter\n                });\n            });\n        });\n        const playlist = playlists[Math.floor((Math.random()*playlists.length))];\n        const firstDeviceMsg = setDeviceMsgs.shift();\n        playMsgs.push({\n            ...firstDeviceMsg,\n            playlist: playlist,\n            shuffle: value.shuffle,\n            shuffleAfterFisrtSong: value.shuffleAfterFisrtSong\n        });\n    }\n}\n\nif (!playMsgs.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",\n             text:`play \"${playMsgs[0].playlist}\" on \"${setDeviceMsgs[0].device}\", ${new Date().toLocaleString()}`});\nreturn [\n    playMsgs,\n    setDeviceMsgs\n];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 440,
+        "y": 1620,
+        "wires": [
+            [
+                "27625cdc.c78ce4"
+            ],
+            [
+                "7bbbc20.44b9b4"
+            ]
+        ]
+    },
+    {
+        "id": "27625cdc.c78ce4",
+        "type": "delay",
+        "z": "4eeba49b.667c6c",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 610,
+        "y": 1600,
+        "wires": [
+            [
+                "c0ca05a.9e953f8"
+            ]
+        ]
+    },
+    {
+        "id": "7bbbc20.44b9b4",
+        "type": "delay",
+        "z": "4eeba49b.667c6c",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 610,
+        "y": 1640,
+        "wires": [
+            [
+                "dc774778.f40c58"
+            ]
+        ]
+    },
+    {
+        "id": "c0ca05a.9e953f8",
+        "type": "link out",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "links": [
+            "9f6a852b.962768"
+        ],
+        "x": 695,
+        "y": 1600,
+        "wires": []
+    },
+    {
+        "id": "2a844043.3c2f7",
+        "type": "link out",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "links": [
+            "9df37dd1.3520d"
+        ],
+        "x": 815,
+        "y": 1640,
+        "wires": []
+    },
+    {
+        "id": "849da022.0e8d8",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Climate (air conditioner) actions",
+        "func": "const climate = msg.actions && msg.actions.climate;\nif (!climate) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nlet cycleOnOffMsgs = [];\nfor (const [key, value] of Object.entries(climate)) {\n    if (helpers.isActive(value)) {\n        const config = Object.assign({}, value);\n        const entityId = config.entity || config.entityId || `climate.${key}`;\n        \n        if (config.action === 'start_on_off_cycle') {\n            let currentState = helpers.getEntityState(entityId);\n            if (msg.lastCycleState) {\n                if (msg.lastCycleState !== currentState && \n                    !(msg.lastCycleState === 'on' && currentState !== 'off')) {\n                    node.status({fill:\"grey\",shape:\"dot\",text:`cycle stopped - state changed from outside`});\n                    context.set(`activeCycles.${helpers.getEntityId(entityId)}`, undefined);\n                }\n                if (!context.get(`activeCycles.${helpers.getEntityId(entityId)}`))\n                    return;\n                const needToTurnOff = msg.lastCycleState !== 'off';\n                currentState = needToTurnOff ? 'off' : (config.mode || 'on');\n                config.action = needToTurnOff ? 'turn_off' : 'turn_on';\n                if (needToTurnOff) {\n                    config.mode = 'off';\n                    config.presetMode = undefined;\n                    config.temperature = undefined;\n                }\n            }\n            config.cycleTimes = config.cycleTimes || {};\n            cycleOnOffMsgs.push({\n                actions: { climate: { [key]: value } },\n                lastCycleState: currentState,\n                delay: 60000 * (currentState === 'off' ? (config.cycleTimes.offMinutes || 10)\n                                                       : (config.cycleTimes.onMinutes || 10))\n            });\n            if (!msg.lastCycleState) {\n                if (context.get(`activeCycles.${helpers.getEntityId(entityId)}`)) {\n                    node.warn(`There's already an active climate on-off cycle for entity ${entityId}`);\n                    cycleOnOffMsgs.pop();\n                }\n                context.set(`activeCycles.${helpers.getEntityId(entityId)}`, true);\n                continue;\n            }\n        }\n        if (config.action === 'stop_on_off_cycle') {\n            context.set(`activeCycles.${helpers.getEntityId(entityId)}`, undefined);\n            continue;\n        }\n        if (config.action === 'turn_on' && !config.mode && !config.temperature) {\n            config.temperature = helpers.getEntity(entityId).attributes.temperature;\n        }\n        if (config.action === 'turn_off' && !config.mode) {\n            config.mode = 'off';\n        }\n        \n        if (config.temperature) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_temperature', \n                                                  { temperature: config.temperature}),\n                delay: (config.offsetSeconds || 0) * 1000\n            });\n        }\n        if (config.mode) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_hvac_mode',\n                                                  { hvac_mode: config.mode }),\n                delay: (config.offsetSeconds || 0) * 1000\n            });\n        }\n        if (config.presetMode) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_preset_mode',\n                                                  { preset_mode: config.presetMode }),\n                delay: (config.offsetSeconds || 0) * 1000\n            });\n        }\n    }\n}\n\nif (!servicesToCall.length && !cycleOnOffMsgs.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nif (!msg.lastCycleState) {\n    node.status({fill:\"green\",shape:\"dot\",text:\n                 `${servicesToCall.length + cycleOnOffMsgs.length} action(s) applied, ${new Date().toLocaleString()}`});\n}\nreturn [ servicesToCall, cycleOnOffMsgs ];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 490,
+        "y": 1500,
+        "wires": [
+            [
+                "45a5b024.2d13e"
+            ],
+            [
+                "133d4063.af607"
+            ]
+        ]
+    },
+    {
+        "id": "a481e95b.587f58",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Cover (blinds) actions",
+        "func": "const cover = msg.actions && msg.actions.cover;\nif (!cover) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet servicesToCall = [];\nfor (const [key, value] of Object.entries(cover)) {\n    if (helpers.isActive(value)) {\n        const entityId = value.entity || value.entityId || `cover.${key}`;\n        const currentPosition = helpers.getEntity(entityId).attributes.current_position;\n        const shouldChangeTo = pos => value.action === 'open' ? pos > currentPosition : \n                                      value.action === 'close' ? pos < currentPosition :\n                                      pos !== currentPosition;\n        if (value.action && typeof(value.position) === 'undefined' && !value.positionSteps) {\n            value.position = value.action === 'open' ? 100 : \n                             value.action === 'close' ? 0 : \n                             undefined;\n        }\n        if (typeof(value.position) !== 'undefined' && shouldChangeTo(value.position)) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_cover_position', { position: value.position }),\n                delay: (value.offsetSeconds || 0) * 1000\n            });\n        }\n        else if (value.positionSteps) {\n            let delay = (value.offsetSeconds || 0) * 1000;\n            const steps = value.positionSteps.filter(shouldChangeTo);\n            steps.forEach((step, index) => {\n                delay += index === 0 ? 0 : (value.positionStepsDelayInSeconds || 0) * 1000;\n                servicesToCall.push({ \n                    payload: helpers.buildServiceCall(entityId, 'set_cover_position', { position: step }),\n                    delay: delay,\n                    filter: () => helpers.getEntity(entityId).attributes.current_position === \n                                  (index === 0 ? currentPosition : steps[index - 1])\n                });\n            });\n        }\n    }\n}\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} action(s) applied, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 460,
+        "y": 1560,
+        "wires": [
+            [
+                "45a5b024.2d13e"
+            ]
+        ]
+    },
+    {
+        "id": "691bd888.7315d8",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "filter",
+        "func": "if (msg.filter && !msg.filter()) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`filtered out ${msg.payload.service}`});\n    return;\n}\nnode.status({});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 870,
+        "y": 1220,
+        "wires": [
+            [
+                "6ee57d21.8fb964"
+            ]
+        ]
+    },
+    {
+        "id": "c193b987.194388",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Service calls",
+        "func": "const services = msg.actions && (msg.actions.services || msg.actions.service);\nif (!services) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet servicesToCall = [];\nfor (const [key, value] of Object.entries(services)) {\n    if (helpers.isActive(value)) {\n        servicesToCall.push({\n            payload: {\n                domain: helpers.getEntityDomain(value.service || key),\n                service: helpers.getEntityId(value.service || key),\n                data: value.data || (!value.service && !value.offsetSeconds && value)\n            },\n            delay: (value.offsetSeconds || 0) * 1000\n        });\n    }\n}\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active services`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} service(s) called, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 430,
+        "y": 1200,
+        "wires": [
+            [
+                "45a5b024.2d13e"
+            ]
+        ]
+    },
+    {
+        "id": "3b5dcbc6.e408d4",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Turn off devices",
+        "func": "const turnOff = msg.actions && (msg.actions.turnOff || msg.actions.turn_off);\nif (!turnOff) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst include = turnOff.include || (!turnOff.exclude && turnOff.include);\ninclude.domains = include.domains || (include.domain && [include.domain]);\ninclude.entities = include.entities || (include.entity && [include.entity]);\n\nconst exclude = turnOff.exclude || {};\nexclude.domains = exclude.domains || (exclude.domain && [exclude.domain]);\nexclude.entities = exclude.entities || (exclude.entity && [exclude.entity]);\n\n\nconst helpers = global.get('helpers');\nconst isExcluded = entityId => exclude.domains.includes(helpers.getEntityDomain(entityId)) ||\n                               exclude.entities.includes(entityId);\n\n\nif (!include.domains && !include.entities) {\n    if (!exclude.domains && !exclude.entities) {\n        node.status({fill:\"yellow\",shape:\"dot\",text:`no included or excluded domains/entities are set`});\n        return;\n    }\n    const defaultExcludedDomains = ['homeassistant','automation','script','input_boolean'];\n    msg.domains = Object.keys(helpers.getServices({service: 'turn_off'}))\n                        .filter(x => !defaultExcludedDomains.includes(x));\n}\n\nlet servicesToCall = [];\nconst addServiceWithDelay = (entity, config) => {\n    servicesToCall.push({\n        payload: helpers.buildServiceCall(entity, 'turn_off'),\n        delay: ((turnOff.offsetSeconds || 0) + (config.offsetSeconds || 0)) * 1000\n    });\n};\nif (include.domains) {\n    include.domains.forEach(x => {\n        const domain = x.domain || x.name || x;\n        if (typeof(domain) !== 'string') {\n            node.warn(`Invalid domain encountered`);\n            return;\n        }\n        helpers.getEntities(domain).forEach(entity => {\n            if (entity.state !== 'off') {\n                addServiceWithDelay(entity, x);\n            }\n        });\n    });\n}\nif (include.entities) {\n    include.entities.forEach(x => {\n        const entityId = x.entity || x.entityId || x.name || x;\n        if (typeof(entityId) !== 'string') {\n            node.warn(`Invalid entity id encountered`);\n            return;\n        }\n        const entity = helpers.getEntity(entityId);\n        if (!entity) {\n            node.warn(`Could not find entity '${entityId}'`);\n            return;\n        }\n        if (entity.state !== 'off') {\n            addServiceWithDelay(entity, x);\n        }\n    });\n}\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no entities to turn off`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} entities turned off, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 440,
+        "y": 1320,
+        "wires": [
+            [
+                "45a5b024.2d13e"
+            ]
+        ]
+    },
+    {
+        "id": "d97cbc54.d0c83",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Build actions",
+        "func": "if (msg.topic === 'info') return;\n\nconst schedule = global.get(`configuration.events.schedule.${msg.topic}`);\nmsg.actions = schedule.actions || schedule;\nmsg.restrictions = schedule.restrictions;\nmsg.context = context;\nmsg.entity = { \n    entity_id: `schedule.${msg.topic}`,\n    state: 'on',\n    attributes: {\n        friendly_name: `Schedule '${msg.topic}'`\n    }\n};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 870,
+        "y": 940,
+        "wires": [
+            [
+                "e9d15f94.032b4"
+            ]
+        ]
+    },
+    {
+        "id": "f92588d3.a38148",
+        "type": "api-call-service",
+        "z": "4eeba49b.667c6c",
+        "name": "Logbook",
+        "server": "c502bde5.d2724",
+        "version": 1,
+        "debugenabled": false,
+        "service_domain": "",
+        "service": "",
+        "entityId": "",
+        "data": "",
+        "dataType": "json",
+        "mergecontext": "",
+        "output_location": "",
+        "output_location_type": "none",
+        "mustacheAltTags": false,
+        "x": 220,
+        "y": 1260,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "281904f9.21c77c",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "events action handling",
+        "func": "const copyObjectWithoutOffsetSeconds = (x, levels) => {\n    if (levels === 0) \n        return x;\n        \n    const copiedObject = {};\n    for (const [key, value] of Object.entries(x)) {\n        if (key === 'offsetSeconds') \n            continue;\n        \n        if (Array.isArray(value) || typeof(value) !== 'object') {\n            copiedObject[key] = value;\n            continue;\n        }\n        copiedObject[key] = Object.assign({}, copyObjectWithoutOffsetSeconds(value, levels--));\n    }\n    return copiedObject;\n};\n\nif (msg.payload.action.startsWith('events.execute.')) {\n    const eventLocation = msg.payload.action.substring('events.execute.'.length);\n    const config = global.get(`configuration.events.${eventLocation}`);\n    const actions = config.actions || config;\n    const copiedActions = {};\n    for (const [actionName, action] of Object.entries(actions)) {\n        if (actionName === 'active' || actionName === 'activate') \n            continue; //always active when executing manually\n        \n        copiedActions[actionName] = copyObjectWithoutOffsetSeconds(action, 2);\n    }\n    \n    msg.actions = copiedActions;\n    msg.context = context;\n    msg.entity = { \n        entity_id: `events.manual_execution_${eventLocation.replace('.', '_')}`,\n        state: 'requested',\n        attributes: {\n            friendly_name: `Manual execution of '${eventLocation}'`\n        }\n    };\n    node.status({fill:\"green\",shape:\"dot\",text:`executing actions of ${eventLocation}}`});\n    return msg;\n}\n\nnode.status({fill:\"grey\",shape:\"dot\",text:`unknown action: ${msg.payload.action}`});\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 880,
+        "y": 820,
+        "wires": [
+            [
+                "d47b15f0.8bcbb8"
+            ]
+        ]
+    },
+    {
+        "id": "d47b15f0.8bcbb8",
+        "type": "link out",
+        "z": "4eeba49b.667c6c",
+        "name": "",
+        "links": [
+            "1d0ae548.8bd06b"
+        ],
+        "x": 1015,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "dc774778.f40c58",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "filter",
+        "func": "if (msg.filter && !msg.filter()) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`filtered out ${msg.device}`});\n    return;\n}\nnode.status({});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 730,
+        "y": 1640,
+        "wires": [
+            [
+                "2a844043.3c2f7"
+            ]
+        ]
+    },
+    {
+        "id": "133d4063.af607",
+        "type": "delay",
+        "z": "4eeba49b.667c6c",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 690,
+        "y": 1520,
+        "wires": [
+            [
+                "849da022.0e8d8"
+            ]
+        ]
+    },
+    {
+        "id": "c3d10aa2.7c9e38",
+        "type": "comment",
+        "z": "4eeba49b.667c6c",
+        "name": "Presence handling",
+        "info": "",
+        "x": 130,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "850a95d4.f4bb68",
+        "type": "comment",
+        "z": "4eeba49b.667c6c",
+        "name": "Alarm clock handling",
+        "info": "",
+        "x": 130,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "85a44c5a.606e2",
+        "type": "comment",
+        "z": "4eeba49b.667c6c",
+        "name": "State changes handling",
+        "info": "",
+        "x": 140,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "b28c26b0.e69c08",
+        "type": "comment",
+        "z": "4eeba49b.667c6c",
+        "name": "Switch & timers handling",
+        "info": "",
+        "x": 150,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "c5100c1c.eb46a",
+        "type": "comment",
+        "z": "4eeba49b.667c6c",
+        "name": "NodeRED event handling",
+        "info": "",
+        "x": 150,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "9af0ca9.70fbf38",
+        "type": "comment",
+        "z": "4eeba49b.667c6c",
+        "name": "Schedules handling",
+        "info": "",
+        "x": 130,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "c502bde5.d2724",
+        "type": "server",
+        "name": "Home Assistant",
+        "addon": true
+    }
+]

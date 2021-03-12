@@ -1,0 +1,189 @@
+{
+    "events": {
+        "presence": {
+            "anyone": {
+                "home": {
+                    "actions": {
+                        "todo": "put here actions which you want to perform when any person is back home"
+                    }
+                }
+            },
+            "everyone": {
+                "away": {
+                    "actions": {
+                        "todo": "put here actions which you want to perform when no person is at home"
+                    }
+                }
+            },
+			"specific_person": {
+				"specific_zone": {
+                    "actions": {
+                        "todo": "put here actions which you want to perform when a specific person is at a specific zone"
+                    }
+				}
+			}
+        },
+        "alarm": {
+            "phone_app_next_alarm_sensor_name": {
+                "active": true,
+                "offsetMinutes": -2,
+                "actions": {
+					"todo": "put here actions which you want to perform when the alarm goes off"
+                }
+            }
+        },
+        "states": {
+            "sensor": {
+                "my_sensor": {
+                    "specific_state": {
+						"actions": {
+							"todo": "put here actions which you want to perform when an entity reaches a specific state"
+						}
+					}
+                }
+            }
+        },
+        "schedule": {
+            "sunrise": {
+                "active": true,
+                "offsetMinutes": -5,
+                "actions": {
+					"todo": "put here actions which you want to perform when the sun is rising"
+                }
+            },
+            "do_something_every_night": {
+                "active": true,
+                "time": "04:00",
+                "actions": {
+					"todo": "put here actions which you want to perform at a specific time every day"
+                }
+            }
+        },
+        "custom_event": {
+			"actions": {
+				"todo": "you can create custom events and call it from scripts, put here the actions to perform"
+            }
+        }
+    },
+	"actions": {
+		"example": {
+			"statePreservation": {
+				"action": "save|restore",
+				"include|exclude": {
+					"domains": [
+						"climate"
+					],
+					"entities": [
+						"switch.my_switch"
+					]
+				}
+			},
+			"turnOff": {
+				"include|exclude": {
+					"domains": [
+						"climate"
+					],
+					"entities": [
+						"switch.my_switch"
+					]
+				}
+			},
+			"media": {
+				"action": "pause|resume"
+			},
+			"climate": {
+				"my_climate": {
+					"action": "turn_on|turn_off",
+					"temperature": 25
+				},
+				"climate_on_off_cycle": {
+					"entity": "climate.my_climate",
+					"action": "start_on_off_cycle|stop_on_off_cycle",
+					"temperature": 25,
+					"cycleTimes": {
+						"onMinutes": 10,
+						"offMinutes": 30
+					}
+				}
+			},
+			"cover": {
+				"my_cover": {
+					"action": "open|close",
+					"position": 50
+				},
+				"my_other_cover": {
+					"action": "open|close",
+					"positionSteps": [
+						10,
+						20,
+						30
+					],
+					"positionStepsDelayInSeconds": 30
+				}
+			},
+			"spotify": {
+				"my_spotify": {
+					"playlist": "My Playlist",
+					"shuffle": true,
+					"device": {
+						"name": "MySpotifySpeaker",
+						"volume": 35
+					}
+				},
+				"my_other_spotify": {
+					"playlists": [
+						"My First Playlist",
+						"My Second Playlist, will choose randomaly"
+					],
+					"devices": [
+						{
+							"name": "FirstSpeakerToUse",
+							"volumeSteps": [
+								10,
+								20,
+								30
+							],
+							"volumeStepsDelayInSeconds": 30
+						},
+						{
+							"name": "SecondSpeakerToUse",
+							"offsetSeconds": 180,
+							"volume": 30
+						}
+					]
+				}
+			},
+			"scene": {
+				"name": "scene.my_scene"
+			},
+			"service": {
+				"sonos.set_sleep_timer": {
+					"entity_id": "media_player.sonos",
+					"sleep_time": 300
+				}
+			}
+		}
+	},
+    "spotify": {
+        "default": "my_spotify",
+		"my_spotify": {
+            "entityId": "media_player.spotify",
+            "authorization": {
+                "type": "api_token|web_player_token",
+                "clientId": "in case you use 'api_token' authorization type",
+                "clientSecret": "in case you use 'api_token' authorization type",
+                "refreshToken": "in case you use 'api_token' authorization type",
+                "sp_dc": "in case you use 'web_player_token' authorization type, check readme",
+                "sp_t": "in case you use 'web_player_token' authorization type, check readme"
+            },
+            "playlistNicknames": {
+                "spotify:playlist:xxx": [
+                    "Daily Mix 1"
+                ]
+            }
+        }
+    },
+    "inputEntitiesToConfigMap": {
+        "input_boolean.do_something_every_night": "events.schedule.do_something_every_night.active"
+    }
+}

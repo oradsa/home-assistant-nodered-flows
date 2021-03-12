@@ -1,0 +1,907 @@
+[
+    {
+        "id": "ff525980.3b11b8",
+        "type": "tab",
+        "label": "Spotify",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "43e04906.1d5538",
+        "type": "inject",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "props": [
+            {
+                "p": "playlist",
+                "v": "daily mix 1",
+                "vt": "str"
+            },
+            {
+                "p": "shuffle",
+                "v": "true",
+                "vt": "bool"
+            },
+            {
+                "p": "shuffleAfterFirstSong",
+                "v": "true",
+                "vt": "bool"
+            },
+            {
+                "p": "device",
+                "v": "Bedroom",
+                "vt": "str"
+            },
+            {
+                "p": "volume",
+                "v": "35",
+                "vt": "num"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 130,
+        "y": 300,
+        "wires": [
+            [
+                "2fcffa56.7421f6"
+            ]
+        ]
+    },
+    {
+        "id": "b9556ee0.ce486",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (!msg.playlist) {\n    node.status({fill:\"red\",shape:\"dot\",text:`no playlist requested`});\n    return null;\n}\n\nconst config = msg.config;\nconst isMatch = (x, y)  => {\n    (config.ignoredCharsWhenComparingNames || ['(',')',' - ']).forEach(c => {\n       x = !!x ? x.replace(c, \"\") : x;\n       y = !!y ? y.replace(c, \"\") : y;\n    });\n    return x === y || (!!x && !!y && x.toLowerCase() == y.toLowerCase());\n};\n\nif (!msg.deviceId) {\n    if (!msg.payload || msg.payload.error || msg.statusCode !== 200) {\n        node.status({fill:\"red\",shape:\"dot\",\n                     text:`failed to get available devices: ${(msg.payload && msg.payload.error && msg.payload.error.message) || 'unknown error'}`});\n        return null;\n    }\n    let device = msg.payload.devices.find(x => x.is_active);\n    if (msg.device || (!device && config.defaultDevice)) {\n        const deviceName = msg.device || config.defaultDevice;\n        device = msg.payload.devices.find(x => isMatch(x.name, deviceName));\n    }\n    if (!device) {\n        node.status({fill:\"red\",shape:\"dot\",\n                     text: msg.device ? `device '${msg.device || config.defaultDevice}' could not be found`\n                                      : `no device requested, and no active or default device found`});\n        return null;\n    }\n    msg.deviceId = device.id;\n}\n\nconst isPlaylistUri = x => typeof(x) === 'string' && (x.startsWith('spotify:') || x.startsWith('https://open.spotify.'));\nlet playlistName = msg.playlist;\nif (config.playlistNicknames && !isPlaylistUri(playlistName)) {\n    playlistName = Object.keys(config.playlistNicknames)\n                         .find(x => config.playlistNicknames[x]\n                                          .find(nickname => isMatch(nickname, playlistName))) || playlistName;\n}\nconst playlist = isPlaylistUri(playlistName) ? { uri: playlistName }\n                                             : (msg.payload && msg.payload.items && msg.payload.items.find(x => isMatch(x.name, playlistName)));\nif (!playlist) {\n    if (msg.payload && msg.payload.error) {\n        node.status({fill:\"red\",shape:\"dot\",text:`can't get playlists: ${msg.payload.error.message}`});\n        return null;\n    }\n    const getPlaylistsUrl = (msg.payload && msg.payload.items) ? msg.payload.next : \"https://api.spotify.com/v1/me/playlists?limit=50\";\n    if (getPlaylistsUrl) {\n        msg.method = \"GET\";\n        msg.url = getPlaylistsUrl;\n        msg.headers = msg.authorizationHeaders;\n        return msg;\n    }\n    node.status({fill:\"red\",shape:\"dot\",text:`playlist not found`});\n    return null;\n}\n\n\nmsg.playlist = playlist.uri;\nmsg.method = \"PUT\";\nmsg.url = `https://api.spotify.com/v1/me/player/play?device_id=${msg.deviceId}`;\nmsg.headers = msg.authorizationHeaders;\nmsg.payload = { context_uri: playlist.uri };\nlet setShuffleMsg = null\nif (msg.shuffle) {\n    const createShuffleMsg = (shuffle, delay) => ({ \n        method: \"PUT\",\n        url: `https://api.spotify.com/v1/me/player/shuffle?device_id=${msg.deviceId}&state=${shuffle ? 'true' : 'false'}`,\n        headers: msg.authorizationHeaders,\n        delay: delay\n    });\n    setShuffleMsg = msg.shuffleAfterFirstSong ? [ createShuffleMsg(false, 0), createShuffleMsg(true, 800) ]\n                                              : createShuffleMsg(true, 0);\n}\nmsg.delay = setShuffleMsg ? 500 : 0;\n\nlet setVolumeMsg = null;\nif (typeof(msg.volume) === 'number') {\n    setVolumeMsg = {\n        ...msg,\n        delay: msg.delay + 100\n    };\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`playing '${playlist.name || msg.playlist}' playlist`});\nreturn [\n    null,\n    msg,\n    setShuffleMsg,\n    setVolumeMsg\n];",
+        "outputs": 4,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 280,
+        "y": 440,
+        "wires": [
+            [
+                "f450ed6b.2501a"
+            ],
+            [
+                "bdbe62df.af61b"
+            ],
+            [
+                "62379c04.dd6d44"
+            ],
+            [
+                "523101a0.e8c37"
+            ]
+        ]
+    },
+    {
+        "id": "376b45df.8eac2a",
+        "type": "inject",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "props": [
+            {
+                "p": "device",
+                "v": "Bedroom",
+                "vt": "str"
+            },
+            {
+                "p": "volume",
+                "v": "35",
+                "vt": "num"
+            },
+            {
+                "p": "play",
+                "v": "false",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payloadType": "str",
+        "x": 130,
+        "y": 640,
+        "wires": [
+            [
+                "113fd173.cfceef"
+            ]
+        ]
+    },
+    {
+        "id": "3e3fff78.e880c",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (!msg.device) {\n    node.status({fill:\"red\",shape:\"dot\",text:`no device`});\n    return null;\n}\n\nconst config = msg.config;\nconst isMatch = (x, y)  => {\n    (config.ignoredCharsWhenComparingNames || ['(',')',' - ']).forEach(c => {\n       x = !!x ? x.replace(c, \"\") : x;\n       y = !!y ? y.replace(c, \"\") : y;\n    });\n    return x === y || (!!x && !!y && x.toLowerCase() == y.toLowerCase());\n};\n\nif (!msg.deviceId) {\n    let deviceName = msg.device;\n    if (config.deviceNicknames) {\n        deviceName = Object.keys(config.deviceNicknames)\n                           .find(x => config.deviceNicknames[x]\n                                            .find(nickname => isMatch(nickname, deviceName))) || deviceName;\n    }\n    const device = msg.payload.devices.find(x => isMatch(x.name, deviceName));\n    if (!device) {\n        node.status({fill:\"red\",shape:\"dot\",text:`device not found: ${msg.device}`});\n        return null;\n    }\n    if (device.is_restricted) {\n        const error = `device is restricted (Sonos): ${device.name}. restricted devices allowed only on 'web_player_token' authorization type.`;\n        node.status({fill:\"red\",shape:\"dot\",text:error});\n        node.error(\"Spotify \" + error);\n        return null;\n    }\n    msg.deviceId = device.id;\n    msg.deviceName = device.name;\n}\n\nconst isDeviceAlreadyPlaying = msg.currentPlaybackStatus.is_playing && msg.currentPlaybackStatus.device.id === msg.deviceId;\nif (!isDeviceAlreadyPlaying) {\n    msg.method = \"PUT\";\n    msg.url = \"https://api.spotify.com/v1/me/player\";\n    msg.headers = msg.authorizationHeaders;\n    msg.payload = { \n        device_ids: [ msg.deviceId ],\n        play: typeof(msg.play) === 'boolean' ? msg.play : true\n    };\n}\n\nlet setVolumeMsg = null;\nif (typeof(msg.volume) === 'number') {\n    setVolumeMsg = {\n        method: \"PUT\",\n        url: `https://api.spotify.com/v1/me/player/volume?device_id=${msg.deviceId}&volume_percent=${msg.volume}`,\n        headers: msg.authorizationHeaders\n    };\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text: `playing on: ${msg.deviceName}`});\nreturn [\n    isDeviceAlreadyPlaying ? null : msg,\n    setVolumeMsg\n];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 280,
+        "y": 780,
+        "wires": [
+            [
+                "83b684b4.690578"
+            ],
+            [
+                "fbcaaabc.2a5ff8"
+            ]
+        ]
+    },
+    {
+        "id": "d8d2b56a.72c028",
+        "type": "comment",
+        "z": "ff525980.3b11b8",
+        "name": "Play playlist by name",
+        "info": "",
+        "x": 180,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "9f6a852b.962768",
+        "type": "link in",
+        "z": "ff525980.3b11b8",
+        "name": "Play playlist",
+        "links": [
+            "1d35ffce.90436",
+            "c0ca05a.9e953f8"
+        ],
+        "x": 155,
+        "y": 340,
+        "wires": [
+            [
+                "2fcffa56.7421f6"
+            ]
+        ]
+    },
+    {
+        "id": "e43b2057.ac664",
+        "type": "comment",
+        "z": "ff525980.3b11b8",
+        "name": "Move playback to device or set volume",
+        "info": "",
+        "x": 230,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "9df37dd1.3520d",
+        "type": "link in",
+        "z": "ff525980.3b11b8",
+        "name": "Move playbak to device",
+        "links": [
+            "3e366923.654216",
+            "4bb763a3.5fc67c",
+            "695d522f.8aa5ec",
+            "2a844043.3c2f7",
+            "4c97d479.0bd80c",
+            "f03c6a0f.d9b208"
+        ],
+        "x": 155,
+        "y": 680,
+        "wires": [
+            [
+                "113fd173.cfceef"
+            ]
+        ]
+    },
+    {
+        "id": "bdbe62df.af61b",
+        "type": "delay",
+        "z": "ff525980.3b11b8",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 430,
+        "y": 440,
+        "wires": [
+            [
+                "c14dcf3f.ea22"
+            ]
+        ]
+    },
+    {
+        "id": "62379c04.dd6d44",
+        "type": "delay",
+        "z": "ff525980.3b11b8",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 430,
+        "y": 480,
+        "wires": [
+            [
+                "246ac9c4.0a5b76"
+            ]
+        ]
+    },
+    {
+        "id": "d4ea2ef9.78421",
+        "type": "delay",
+        "z": "ff525980.3b11b8",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 870,
+        "y": 440,
+        "wires": [
+            [
+                "b9556ee0.ce486"
+            ]
+        ]
+    },
+    {
+        "id": "5705f32e.d1c90c",
+        "type": "switch",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "property": "payload.action",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "spotify.switch_device",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 190,
+        "y": 120,
+        "wires": [
+            [
+                "7ad352e9.0b3c2c"
+            ],
+            [
+                "94e2f01.dd3351"
+            ]
+        ]
+    },
+    {
+        "id": "94e2f01.dd3351",
+        "type": "debug",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 350,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "d2219b8e.44b458",
+        "type": "link in",
+        "z": "ff525980.3b11b8",
+        "name": "Handle spotify action",
+        "links": [
+            "8e53cbbf.ead748",
+            "bcb38ed0.56286"
+        ],
+        "x": 95,
+        "y": 120,
+        "wires": [
+            [
+                "5705f32e.d1c90c"
+            ]
+        ]
+    },
+    {
+        "id": "8eae6051.023d3",
+        "type": "comment",
+        "z": "ff525980.3b11b8",
+        "name": "Handle command",
+        "info": "",
+        "x": 160,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "b8f8f766.c20328",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (msg.statusCode === 204 || msg.statusCode === 202) {\n    node.status({fill:\"green\",shape:\"dot\",text:`play was successful, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nmsg.delay = 500;\nmsg.tries = msg.tries ? msg.tries - 1 : (60000 / msg.delay);\nif (msg.tries <= 0) {\n    node.status({fill:\"red\",shape:\"dot\",text:`failed to play, ${new Date().toLocaleString()}`});\n    return null;\n}\nnode.status({fill:\"grey\",shape:\"dot\",text:`retrying`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 740,
+        "y": 440,
+        "wires": [
+            [
+                "d4ea2ef9.78421"
+            ]
+        ]
+    },
+    {
+        "id": "7ad352e9.0b3c2c",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (!msg.payload.params || !msg.payload.params.device) {\n    node.status({fill:\"red\",shape:\"dot\",text:`no device`});\n    return null;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`command accepted`});\nmsg.device = msg.payload.params.device;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 340,
+        "y": 100,
+        "wires": [
+            [
+                "4c97d479.0bd80c"
+            ]
+        ]
+    },
+    {
+        "id": "4c97d479.0bd80c",
+        "type": "link out",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "links": [
+            "9df37dd1.3520d"
+        ],
+        "x": 435,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "f450ed6b.2501a",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Get playlists",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 450,
+        "y": 400,
+        "wires": [
+            [
+                "b9556ee0.ce486"
+            ]
+        ]
+    },
+    {
+        "id": "c14dcf3f.ea22",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Start playback",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 580,
+        "y": 440,
+        "wires": [
+            [
+                "b8f8f766.c20328"
+            ]
+        ]
+    },
+    {
+        "id": "2fcffa56.7421f6",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "Prepare",
+        "func": "const globalConfig = global.get(\"configuration.spotify\");\nconst configName = msg.user ? msg.user \n                            : (typeof(globalConfig.default) === 'string') ? globalConfig.default : 'default';\nconst config = globalConfig && (globalConfig[configName] || globalConfig[configName.toLowerCase()] || \n                                (msg.user && (globalConfig.find(x => x.user === user) || globalConfig.find(x => x.user === user.toLowerCase()))));\nif (!config) {\n    node.status({fill:\"red\",shape:\"dot\",text:`can't find Spotify configuration (${msg.user || 'default'})`});\n    return null;\n}\nmsg.config = config;\n\nswitch (config.authorization && config.authorization.type) {\n    case \"api_token\":\n        if (!config.authorization.clientId || !config.authorization.clientSecret || !config.authorization.refreshToken)\n            break;\n        msg.method = \"POST\";\n        msg.url = \"https://accounts.spotify.com/api/token\";\n        msg.headers = {\n            \"Content-Type\": \"application/x-www-form-urlencoded\",\n            \"Authorization\": \"Basic \" + Buffer.from(`${config.authorization.clientId}:${config.authorization.clientSecret}`).toString('base64')\n        };\n        msg.payload = `grant_type=refresh_token&refresh_token=${config.authorization.refreshToken}`;\n        return msg;\n    case \"web_player_token\":\n        if (!config.authorization.sp_dc || !config.authorization.sp_t)\n            break;\n        msg.method = \"GET\";\n        msg.url = \"https://open.spotify.com/get_access_token?reason=transport&productType=web_player\";\n        msg.headers = {\n            \"cookie\": `sp_dc=${config.authorization.sp_dc};sp_t=${config.authorization.sp_t}`,\n            \"user-agent\": config.authorization[\"user-agent\"] || \"Mozilla/5.0 (Windows NT 10.0; Win64; x64)\"\n        };\n        return msg;\n}\n\nnode.status({fill:\"red\",shape:\"dot\",text:`invalid Spotify authorization configuration (${msg.user || 'default'})`});\nreturn null;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 280,
+        "y": 300,
+        "wires": [
+            [
+                "49a5a55f.2c9d6c"
+            ]
+        ],
+        "outputLabels": [
+            "device not need to be changed"
+        ]
+    },
+    {
+        "id": "49a5a55f.2c9d6c",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Refresh access token",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 460,
+        "y": 300,
+        "wires": [
+            [
+                "bb5e57bd.dd6018",
+                "9c6de3dd.8ae1a"
+            ]
+        ]
+    },
+    {
+        "id": "bb5e57bd.dd6018",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "Set authorization headers",
+        "func": "if (msg.statusCode !== 200) {\n    node.status({fill:\"red\",shape:\"dot\",text:`Failed to refresh access token! Error: ${msg.payload}`});\n    node.error(`Failed to refresh access token for Spotify! Error: ${msg.payload}`);\n    return null;\n}\n\nmsg.headers = {\n    Authorization: `Bearer ${msg.payload.access_token || msg.payload.accessToken}`\n};\nmsg.authorizationHeaders = msg.headers;\nnode.status({fill:\"green\",shape:\"dot\",text:`authenticated successfully, ${new Date().toLocaleString()}`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 690,
+        "y": 300,
+        "wires": [
+            [
+                "f9391106.f1ef"
+            ]
+        ],
+        "outputLabels": [
+            "device not need to be changed"
+        ]
+    },
+    {
+        "id": "246ac9c4.0a5b76",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Set shuffle",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 570,
+        "y": 480,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "4e58346e.bf26cc",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Get available devices",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 460,
+        "y": 340,
+        "wires": [
+            [
+                "b9556ee0.ce486",
+                "bdb3cd30.a4ec4"
+            ]
+        ]
+    },
+    {
+        "id": "f9391106.f1ef",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (msg.statusCode !== 200) {\n    node.status({fill:\"red\",shape:\"dot\",text:`Failed to refresh access token!`});\n    return null;\n}\n\nmsg.method = \"GET\";\nmsg.url = \"https://api.spotify.com/v1/me/player/devices\";\nmsg.headers = msg.authorizationHeaders;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 280,
+        "y": 340,
+        "wires": [
+            [
+                "4e58346e.bf26cc"
+            ]
+        ],
+        "outputLabels": [
+            "device not need to be changed"
+        ]
+    },
+    {
+        "id": "113fd173.cfceef",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "Prepare",
+        "func": "const globalConfig = global.get(\"configuration.spotify\");\nconst configName = msg.user ? msg.user \n                            : (typeof(globalConfig.default) === 'string') ? globalConfig.default : 'default';\nconst config = globalConfig && (globalConfig[configName] || globalConfig[configName.toLowerCase()] || \n                                (msg.user && (globalConfig.find(x => x.user === user) || globalConfig.find(x => x.user === user.toLowerCase()))));\nif (!config) {\n    node.status({fill:\"red\",shape:\"dot\",text:`can't find Spotify configuration (${msg.user || 'default'})`});\n    return null;\n}\nmsg.config = config;\n\nswitch (config.authorization && config.authorization.type) {\n    case \"api_token\":\n        if (!config.authorization.clientId || !config.authorization.clientSecret || !config.authorization.refreshToken)\n            break;\n        msg.method = \"POST\";\n        msg.url = \"https://accounts.spotify.com/api/token\";\n        msg.headers = {\n            \"Content-Type\": \"application/x-www-form-urlencoded\",\n            \"Authorization\": \"Basic \" + Buffer.from(`${config.authorization.clientId}:${config.authorization.clientSecret}`).toString('base64')\n        };\n        msg.payload = `grant_type=refresh_token&refresh_token=${config.authorization.refreshToken}`;\n        return msg;\n    case \"web_player_token\":\n        if (!config.authorization.sp_dc || !config.authorization.sp_t)\n            break;\n        msg.method = \"GET\";\n        msg.url = \"https://open.spotify.com/get_access_token?reason=transport&productType=web_player\";\n        msg.headers = {\n            \"cookie\": `sp_dc=${config.authorization.sp_dc};sp_t=${config.authorization.sp_t}`,\n            \"user-agent\": config.authorization[\"user-agent\"] || \"Mozilla/5.0 (Windows NT 10.0; Win64; x64)\"\n        };\n        return msg;\n}\n\nnode.status({fill:\"red\",shape:\"dot\",text:`invalid Spotify authorization configuration (${msg.user || 'default'})`});\nreturn null;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 280,
+        "y": 640,
+        "wires": [
+            [
+                "3262b464.986c0c"
+            ]
+        ],
+        "outputLabels": [
+            "device not need to be changed"
+        ]
+    },
+    {
+        "id": "3262b464.986c0c",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Refresh access token",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 460,
+        "y": 640,
+        "wires": [
+            [
+                "5eab6efc.8d892",
+                "41bab8e4.a16e98"
+            ]
+        ]
+    },
+    {
+        "id": "5eab6efc.8d892",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "Set authorization headers",
+        "func": "if (msg.statusCode !== 200) {\n    node.status({fill:\"red\",shape:\"dot\",text:`Failed to refresh access token! Error: ${msg.payload}`});\n    node.error(`Failed to refresh access token for Spotify! Error: ${msg.payload}`);\n    return null;\n}\n\nmsg.headers = {\n    Authorization: `Bearer ${msg.payload.access_token || msg.payload.accessToken}`\n};\nmsg.authorizationHeaders = msg.headers;\nnode.status({fill:\"green\",shape:\"dot\",text:`authenticated successfully, ${new Date().toLocaleString()}`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 690,
+        "y": 640,
+        "wires": [
+            [
+                "df6ab13b.77e84"
+            ]
+        ],
+        "outputLabels": [
+            "device not need to be changed"
+        ]
+    },
+    {
+        "id": "880d60e5.057f9",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Get available devices",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 460,
+        "y": 720,
+        "wires": [
+            [
+                "3e3fff78.e880c",
+                "69145908.935618"
+            ]
+        ]
+    },
+    {
+        "id": "be574abd.6149e8",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (msg.statusCode !== 200 && msg.statusCode !== 204) {\n    node.status({fill:\"red\",shape:\"dot\",text:`Failed to get current playback status`});\n    return null;\n}\n\nmsg.currentPlaybackStatus = msg.payload || {};\n\nmsg.method = \"GET\";\nmsg.url = \"https://api.spotify.com/v1/me/player/devices\";\nmsg.headers = msg.authorizationHeaders;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 280,
+        "y": 720,
+        "wires": [
+            [
+                "880d60e5.057f9"
+            ]
+        ],
+        "outputLabels": [
+            "device not need to be changed"
+        ]
+    },
+    {
+        "id": "62b318f3.63e828",
+        "type": "delay",
+        "z": "ff525980.3b11b8",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 830,
+        "y": 760,
+        "wires": [
+            [
+                "3e3fff78.e880c"
+            ]
+        ]
+    },
+    {
+        "id": "3321f4f8.3ca28c",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (msg.statusCode === 204 || msg.statusCode === 202) {\n    node.status({fill:\"green\",shape:\"dot\",text:`transfer was successful, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nmsg.delay = 500;\nmsg.tries = msg.tries ? msg.tries - 1 : (60000 / msg.delay);\nif (msg.tries <= 0) {\n    node.status({fill:\"red\",shape:\"dot\",text:`failed to transfer, ${new Date().toLocaleString()}`});\n    return null;\n}\nnode.status({fill:\"grey\",shape:\"dot\",text:`retrying`});\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 700,
+        "y": 760,
+        "wires": [
+            [
+                "62b318f3.63e828"
+            ]
+        ]
+    },
+    {
+        "id": "83b684b4.690578",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Transfer playback to device",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 500,
+        "y": 760,
+        "wires": [
+            [
+                "3321f4f8.3ca28c"
+            ]
+        ]
+    },
+    {
+        "id": "fbcaaabc.2a5ff8",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Set volume",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 450,
+        "y": 800,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "df6ab13b.77e84",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (msg.statusCode !== 200) {\n    node.status({fill:\"red\",shape:\"dot\",text:`Failed to refresh access token!`});\n    return null;\n}\n\nmsg.method = \"GET\";\nmsg.url = \"https://api.spotify.com/v1/me/player\";\nmsg.headers = msg.authorizationHeaders;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 280,
+        "y": 680,
+        "wires": [
+            [
+                "5d072f2a.95fce"
+            ]
+        ],
+        "outputLabels": [
+            "device not need to be changed"
+        ]
+    },
+    {
+        "id": "5d072f2a.95fce",
+        "type": "http request",
+        "z": "ff525980.3b11b8",
+        "name": "Get current playback status",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 480,
+        "y": 680,
+        "wires": [
+            [
+                "be574abd.6149e8",
+                "b940fa6d.a4a988"
+            ]
+        ]
+    },
+    {
+        "id": "9c6de3dd.8ae1a",
+        "type": "debug",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "41bab8e4.a16e98",
+        "type": "debug",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "b940fa6d.a4a988",
+        "type": "debug",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "69145908.935618",
+        "type": "debug",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "bdb3cd30.a4ec4",
+        "type": "debug",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "523101a0.e8c37",
+        "type": "delay",
+        "z": "ff525980.3b11b8",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 430,
+        "y": 520,
+        "wires": [
+            [
+                "f03c6a0f.d9b208"
+            ]
+        ]
+    },
+    {
+        "id": "f03c6a0f.d9b208",
+        "type": "link out",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "links": [
+            "9df37dd1.3520d"
+        ],
+        "x": 515,
+        "y": 520,
+        "wires": []
+    }
+]
