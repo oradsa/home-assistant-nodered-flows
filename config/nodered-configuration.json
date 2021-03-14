@@ -167,7 +167,6 @@
     "spotify": {
         "default": "my_spotify",
 		"my_spotify": {
-            "entityId": "media_player.spotify",
             "authorization": {
                 "type": "api_token|web_player_token",
                 "clientId": "in case you use 'api_token' authorization type",
@@ -184,6 +183,6 @@
         }
     },
     "inputEntitiesToConfigMap": {
-        "input_boolean.do_something_every_night": "events.schedule.do_something_every_night.active"
+        "input_boolean.nr_config_do_something_every_night": "events.schedule.do_something_every_night.active"
     }
 }
