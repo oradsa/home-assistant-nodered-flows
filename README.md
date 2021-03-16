@@ -59,8 +59,8 @@ The `nodered-configuration.json` file contains the following main sections:
 The `events` property in the `nodered-configuration.json` file allows you to configure the following triggers:
 * [Presence](/documantation/events/presence.md) - triggered when a persone detected at a zone.
 * [Alarm](/documantation/events/alarm.md) - triggered when the phone alarm goes off.
-* [states](/documantation/events/states.md) - triggered when an entity state is changed, to a specific value(s).
-* [schedule](/documantation/events/schedule.md) - triggered at a specific schedule (e.g. time of day).
+* [States](/documantation/events/states.md) - triggered when an entity state is changed, to a specific value(s).
+* [Schedule](/documantation/events/schedule.md) - triggered at a specific schedule (e.g. time of day).
 * [Custom events](/documantation/events/custom_events.md) - triggered manually (e.g. by HA script).
 
 ### Actions
