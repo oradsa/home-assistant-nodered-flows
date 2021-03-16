@@ -35,7 +35,7 @@ Preserves states for selected domains and/or entities, or restores a previously 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Define entities to never save states for.
 
 ## Example of complete configuration section
-* Saving states for all `climate` and `switch` entities, except of `switch.my_switch`:
+Saving states for all `climate` and `switch` entities, except of `switch.my_switch`:
 ```json
 "statePreservation": {
   "action": "save",
@@ -53,7 +53,7 @@ Preserves states for selected domains and/or entities, or restores a previously 
 }
 ```
 
-* Restoring previously saved states:
+Restoring previously saved states:
 ```json
 "statePreservation": {
   "action": "restore"
