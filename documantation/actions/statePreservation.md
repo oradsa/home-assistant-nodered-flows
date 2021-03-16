@@ -10,9 +10,6 @@ Preserves states for selected domains and/or entities, or restores a previously 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **action** *string* <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `save` or `restore`.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **ignoreStates** *list of strings* <br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List of states to ignore while saving states. Relevat only when `action`=`save`. Default: `["off","idle"]`.
-
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **include** *object* &nbsp; `optional` <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Define domains or entities to save states for. Relevat only when `action`=`save`. <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Either this or `exclude` option must be set, with either `domains` or `entities` under it. <br>
@@ -33,6 +30,16 @@ Preserves states for selected domains and/or entities, or restores a previously 
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **entities** *list of strings* &nbsp; `optional` <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Define entities to never save states for.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **hoursToExpire** *inteter* &nbsp; `optional` <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Number of hours the saved states will be valid. Relevat only when `action`=`save`. Cannot be set together with `minutesToExpire`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **minutesToExpire** *inteter* &nbsp; `optional` <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Number of minutes the saved states will be valid. Relevat only when `action`=`save`. Cannot be set together with `hoursToExpire`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **ignoreStates** *list of strings* &nbsp; `optional` <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List of states to ignore while saving states. Relevat only when `action`=`save`. Default: `["off","idle"]`.
+
 
 ## Example of complete configuration section
 Saving states for all `climate` and `switch` entities, except of `switch.my_switch`:
