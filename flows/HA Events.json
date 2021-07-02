@@ -25,7 +25,7 @@
             }
         ],
         "x": 150,
-        "y": 800,
+        "y": 820,
         "wires": [
             [
                 "207701de.de859e"
@@ -85,11 +85,12 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Set next alarm time",
-        "func": "const helpers = global.get('helpers');\nconst alarmName = helpers.getEntityId(msg.data.event);\nconst config = global.get(`configuration.events.alarm.${alarmName}`);\nif (!config) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`alarm not configured: ${alarmName}`});\n    return;\n}\n\nconst alarm = new Date(msg.payload);\nconst nextAlarm = flow.get(`alarm.${alarmName}.next`);\nconst minDiff = (config.snoozeMinutesToTreatAsSameAlarm || 15) * 60000;\nif (config.offsetMinutes > 0 && nextAlarm < alarm && \n    nextAlarm.getTime() - (config.offsetMinutes || 0) * 60000 <= new Date() && \n    new Date().getTime() - nextAlarm.getTime() <= minDiff) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`ignored as in previous alarm range, ${alarm.toLocaleString()}`});\n    return null;\n}\nflow.set(`alarm.${alarmName}.next`, undefined);\n\nif (msg.data.event.new_state.attributes.Package && \n    !['alarm', 'clock'].some(x => msg.data.event.new_state.attributes.Package.includes(x))) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`not an alarm: ${msg.data.event.new_state.attributes.Package}`});\n    return null;\n}\n\nif (config.minimumHour > alarm.getHours() || config.maximumHour < alarm.getHours()) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`not in allowed time, ${alarm.toLocaleString()}`});\n    return null;\n}\n\nconst lastHandledAlarm = flow.get(`alarm.${alarmName}.lastHandled`);\nif (lastHandledAlarm && alarm.getTime() - lastHandledAlarm.getTime() <= minDiff) {\n    flow.set(`alarm.${alarmName}.lastHandled`, alarm);\n    node.status({fill:\"grey\",shape:\"dot\",text:`skippped, ${alarm.toLocaleString()}`});\n    return null;\n}\n\nconst offsetFromAlarm = new Date(alarm.getTime() + (config.offsetMinutes || 0) * 60000).getTime();\nconst actualAlarm = new Date(Math.max(offsetFromAlarm, new Date().getTime() + 5000));\nmsg.alarmName = alarmName;\nmsg.actualAlarm = actualAlarm;\nmsg.dates = [\n    actualAlarm\n];\nflow.set(`alarm.${alarmName}.next`, actualAlarm);\nnode.status({fill:\"green\",shape:\"dot\",text:`${alarmName} set to ${actualAlarm.toLocaleString()}`});\nreturn msg;",
+        "func": "const helpers = global.get('helpers');\nconst alarmName = helpers.getEntityId(msg.data.event);\nconst config = global.get(`configuration.events.alarm.${alarmName}`);\nif (!config) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`alarm not configured: ${alarmName}`});\n    return;\n}\n\nconst alarm = new Date(msg.payload);\nconst nextAlarm = flow.get(`alarm.${alarmName}.next`);\nconst minDiff = (config.snooze_minutes_to_treat_as_same_alarm || 15) * 60000;\nif (config.offset_minutes > 0 && nextAlarm < alarm && \n    nextAlarm.getTime() - (config.offset_minutes || 0) * 60000 <= new Date() && \n    new Date().getTime() - nextAlarm.getTime() <= minDiff) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`ignored as in previous alarm range, ${alarm.toLocaleString()}`});\n    return null;\n}\nflow.set(`alarm.${alarmName}.next`, undefined);\n\nif (msg.data.event.new_state.attributes.Package && \n    !['alarm', 'clock'].some(x => msg.data.event.new_state.attributes.Package.includes(x))) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`not an alarm: ${msg.data.event.new_state.attributes.Package}`});\n    return null;\n}\n\nif (config.minimum_hour > alarm.getHours() || config.maximum_hour < alarm.getHours()) {\n    node.status({fill:\"grey\",shape:\"ring\",text:`not in allowed time, ${alarm.toLocaleString()}`});\n    return null;\n}\n\nconst lastHandledAlarm = flow.get(`alarm.${alarmName}.lastHandled`);\nif (lastHandledAlarm && alarm.getTime() - lastHandledAlarm.getTime() <= minDiff) {\n    flow.set(`alarm.${alarmName}.lastHandled`, alarm);\n    node.status({fill:\"grey\",shape:\"dot\",text:`skippped, ${alarm.toLocaleString()}`});\n    return null;\n}\n\nconst offsetFromAlarm = new Date(alarm.getTime() + (config.offset_minutes || 0) * 60000).getTime();\nconst actualAlarm = new Date(Math.max(offsetFromAlarm, new Date().getTime() + 5000));\nmsg.alarmName = alarmName;\nmsg.actualAlarm = actualAlarm;\nmsg.dates = [\n    actualAlarm\n];\nflow.set(`alarm.${alarmName}.next`, actualAlarm);\nnode.status({fill:\"green\",shape:\"dot\",text:`${alarmName} set to ${actualAlarm.toLocaleString()}`});\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 350,
         "y": 440,
         "wires": [
@@ -144,7 +145,7 @@
         "initialize": "",
         "finalize": "",
         "x": 410,
-        "y": 800,
+        "y": 820,
         "wires": [
             [
                 "901a4039.ecfd9"
@@ -171,10 +172,10 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Load configuration",
-        "func": "const helpers = global.get('helpers');\nconst getConfigValue = (entityId, state) => {\n    const configItemType = helpers.getEntityDomain(entityId).replace('input_', '');\n    switch (configItemType) {\n        case 'boolean':\n            return state === 'on';\n        case 'number':\n            return parseInt(state);\n    }\n    return state; \n};\nconst getInputUpdateService = (entity, configItemName) => {\n    if (!entity || !configItemName)\n        return null;\n    const configValue = global.get(`configuration.${configItemName}`);\n    if (configValue === getConfigValue(entity.entity_id, entity.state)) \n        return null;\n    const domain = helpers.getEntityDomain(entity);\n    const service = {\n        domain: domain,\n        data: { entity_id: entity.entity_id }\n    };\n    switch (domain) {\n        case 'input_boolean':\n            service.service = configValue ? 'turn_on' : 'turn_off';\n            return service;\n        case 'input_number':\n        case 'input_text':\n            service.service = 'set_value';\n            service.data.value = configValue;\n            return service;\n        case 'input_select':\n            service.service = 'select_option';\n            service.data.option = configValue;\n            return service;\n    }\n    node.error(`Unknown domain (${domain}) or state (${entity.state})`);\n    return null;\n};\n\nmsg.payload = JSON.parse(msg.payload);\nglobal.set('configuration', msg.payload);\n\nconst inputEntities = global.get('configuration.inputEntitiesToConfigMap') || {};\nconst entities = global.get('homeassistant.homeAssistant.states');\nconst servicesToCall = Object.keys(inputEntities)\n                             .map(x => getInputUpdateService(entities[x], inputEntities[x]))\n                             .filter(x => !!x);\n\nnode.status({fill:\"green\",shape:\"dot\",text:\"loaded, \"+ new Date().toLocaleString()});\nreturn [ servicesToCall.map(x => ({ payload: x })), msg ];",
+        "func": "const helpers = global.get('helpers');\nconst getConfigValue = (entityId, state) => {\n    const configItemType = helpers.getEntityDomain(entityId).replace('input_', '');\n    switch (configItemType) {\n        case 'boolean':\n            return state === 'on';\n        case 'number':\n            return parseInt(state);\n    }\n    return state; \n};\nconst getInputUpdateService = (entity, configItemName) => {\n    if (!entity || !configItemName)\n        return null;\n    const configValue = global.get(`configuration.${configItemName}`);\n    if (configValue === getConfigValue(entity.entity_id, entity.state)) \n        return null;\n    const domain = helpers.getEntityDomain(entity);\n    const service = {\n        domain: domain,\n        data: { entity_id: entity.entity_id }\n    };\n    switch (domain) {\n        case 'input_boolean':\n            service.service = configValue ? 'turn_on' : 'turn_off';\n            return service;\n        case 'input_number':\n        case 'input_text':\n            service.service = 'set_value';\n            service.data.value = configValue;\n            return service;\n        case 'input_select':\n            service.service = 'select_option';\n            service.data.option = configValue;\n            return service;\n    }\n    node.error(`Unknown domain (${domain}) or state (${entity.state})`);\n    return null;\n};\n\nmsg.payload = JSON.parse(msg.payload);\nglobal.set('configuration', msg.payload);\n\nconst inputEntities = global.get('configuration.input_entities_to_config_map') || {};\nconst entities = global.get('homeassistant.homeAssistant.states');\nconst servicesToCall = Object.keys(inputEntities)\n                             .map(x => getInputUpdateService(entities[x], inputEntities[x]))\n                             .filter(x => !!x);\n\nnode.status({fill:\"green\",shape:\"dot\",text:\"loaded, \"+ new Date().toLocaleString()});\nreturn [ servicesToCall.map(x => ({ payload: x })), msg ];",
         "outputs": 2,
         "noerr": 0,
-        "initialize": "const helpers = {\n    isActive: x => x && (typeof(x.active) === 'undefined' || !!x.active) && \n                        (typeof(x.activate) === 'undefined' || !!x.activate),\n    isMatch: (questioned, actual, options = {}) => {\n        const {\n            matchFunc = (x, y) => options.allowRegex ? RegExp(x).test(y) : x === y, \n            arrayMatchFunc = Array.prototype.some, \n            defaultResult = true\n        } = options;\n        if (!questioned)\n            return defaultResult;\n        if (Array.isArray(questioned))\n            return !!arrayMatchFunc.call(questioned, x => helpers.isMatch(x, actual, options));\n        if (typeof(questioned) === 'object' && typeof(actual) === 'object')\n            return Object.keys(questioned).every(x => helpers.isMatch(questioned[x], actual[x], options));\n        return matchFunc(questioned, actual);\n    },\n    includesCaseInsensitive: (x, y) => x && y && x.toLowerCase().includes(y.toLowerCase()),\n    filterProperties: (obj, filter, subFilter, removeEmptyObjects) => {\n        subFilter = subFilter || (x => x);\n        return Object.keys(obj).filter(x => filter(x, obj[x]))\n                               .map(x => ({ key: x, value: subFilter(obj[x]) }))\n                               .filter(x => !removeEmptyObjects || (typeof(x.value) !== 'object' || Object.keys(x.value).length > 0))\n                               .reduce((res, curr) => (res[curr.key] = curr.value) && res, {});\n    },\n    generateRandomSuffix: () => 'xxxx'.replace(/[xy]/g, function(c) {\n        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);\n        return v.toString(16);\n    }),\n    makeExpirable: (object, options) => {\n        object.createdAt = new Date();\n        const minutesToExpire = options.minutesToExpire || ((options.hoursToExpire || 0) * 60);\n        object.expiresAt = minutesToExpire > 0 ? new Date(object.createdAt.getTime() + minutesToExpire * 60000) : undefined;\n        return object;\n    },\n    isExpired: object => object.expiresAt && object.expiresAt < new Date(),\n    \n    getEntityDomain: entityOrId => (typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId).split('.')[0],\n    getEntityId: entityOrId => (typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId).split('.')[1],\n    getEntity: (id) => global.get('homeassistant.homeAssistant.states')[id],\n    getEntityState: (id) => { const entity = helpers.getEntity(id); return entity && entity.state; },\n    getEntities: (domain, state, {attributes, attributesMatchFunc, attributesNegateMatch, allowRegex} = {}) => {\n        const entities = global.get('homeassistant.homeAssistant.states');\n        const attributesMatchOptions = attributesNegateMatch ? { matchFunc: !attributesMatchFunc ? (x, y) => x !== y \n                                                                                                 : (x, y) => !attributesMatchFunc(x, y), \n                                                                 arrayMatchFunc: Array.prototype.every }\n                                                             : { matchFunc: attributesMatchFunc };\n        return Object.keys(entities).map(x => entities[x])\n                     .filter(x => x && helpers.isMatch(domain, helpers.getEntityDomain(x), {allowRegex}) && \n                                  helpers.isMatch(state, x.state) && \n                                  helpers.isMatch(attributes, x.attributes, attributesMatchOptions));\n    },\n    getEntitiesByConfig: (config, defaultConfig, defaultResult) => {\n        let include = config.include || {};\n        include.domains = include.domains || (include.domain && [include.domain]);\n        include.entities = include.entities || (include.entity && [include.entity]);\n        let exclude = config.exclude || {};\n        exclude.domains = exclude.domains || (exclude.domain && [exclude.domain]);\n        exclude.entities = exclude.entities || (exclude.entity && [exclude.entity]);\n        if (!include.domains && !include.entities) {\n            if (!exclude.domains && !exclude.entities) {\n                if (!defaultConfig) return defaultResult;\n                include = defaultConfig.include;\n                exclude = defaultConfig.exclude;\n            }\n            else {\n                include.allowRegex = true;\n                include.domains = ['.*'];\n            }\n        }\n        let entities = [];\n        include.domains && include.domains.forEach(domain => {\n            if (typeof(domain) !== 'string') return;\n            Array.prototype.push.apply(entities, helpers.getEntities(domain, null, {allowRegex: include.allowRegex}));\n        });\n        if (include.entities) {\n            if (include.allowRegex) {\n                Array.prototype.push.apply(entities, helpers.getEntities(\".*\", null, {allowRegex: true})\n                                                            .filter(x => helpers.isMatch(include.entities, x.entity_id, {allowRegex: true})));\n            }\n            else {\n                include.entities.forEach(entityId => {\n                    const entity = helpers.getEntity(entityId);\n                    entity && entities.push(entity);\n                });\n            }\n        }\n        const excludeMatchOptions = {allowRegex: exclude.allowRegex, defaultResult: false};\n        entities = entities.filter(x => !helpers.isMatch(exclude.domains, helpers.getEntityDomain(x), excludeMatchOptions) &&\n                                        !helpers.isMatch(exclude.entities, x.entity_id, excludeMatchOptions));\n        return entities;\n    },\n    getEntityIds: (domain, state, options) => {\n        return helpers.getEntities(domain, state, options).map(x => x.entity_id);\n    },\n    getServices: ({domain, service}) => {\n        return helpers.filterProperties(global.get('homeassistant.homeAssistant.services'),\n                                        d => !domain || d === domain,\n                                        d => helpers.filterProperties(d, x => !service || x === service, null, true),\n                                        true);\n    },\n    buildServiceCall: (entityOrId, service, data) => ({\n        domain: helpers.getEntityDomain(entityOrId),\n        service: service,\n        data: Object.assign(data || {}, {\n            entity_id: typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId\n        })\n    }),\n    buildServiceCalls: (entitiesOrIds, service, data) => entitiesOrIds.map(x => helpers.buildServiceCall(x, service, data)),\n    buildServiceCallFromState: (entityOrId, state) => {\n        switch (helpers.getEntityDomain(entityOrId)) {\n            case 'switch':\n                return helpers.buildServiceCall(entityOrId, `turn_${state}`);\n            default:\n                return null;\n        }\n    },\n    buildLogbookLog: (name, message, entityId) => ({\n        payload: {\n            domain: 'logbook',\n            service: 'log',\n            data: { name, message, entity_id: entityId }\n        }\n    }),\n    createSubContext: (context, prefix) => ({\n        get: (key) => context.get(`${prefix}.${key}`),\n        set: (key, value) => context.set(`${prefix}.${key}`, value)\n    }),\n    getPersonPhoneWifiConnection: person => {\n        if (typeof(person) === 'string') person = helpers.getEntity(person);\n        if (!person) return null;\n        const deviceTracker = person.attributes.source;\n        const deviceWifiEntityId = deviceTracker && deviceTracker.startsWith('device_tracker.') && \n                                   (deviceTracker.replace('device_tracker.', 'sensor.') + '_wifi_connection');\n        return !!deviceWifiEntityId ? helpers.getEntity(deviceWifiEntityId) : null;\n    },\n    isPersonAtHome: person => {\n        if (typeof(person) === 'string') person = helpers.getEntity(person);\n        if (!person) return false\n        if (person.state === 'home') return true;\n        const presenceConfig = global.get('configuration.events.presence') || {};\n        const phoneWifi = helpers.getPersonPhoneWifiConnection(person);\n        return phoneWifi && (presenceConfig.homeWifiNetworks || [presenceConfig.homeWifiNetwork]).includes(phoneWifi.state);\n    }\n};\nglobal.set('helpers', helpers);\n",
+        "initialize": "const helpers = {\n    isActive: x => x && (typeof(x.active) === 'undefined' || !!x.active) && \n                        (typeof(x.activate) === 'undefined' || !!x.activate),\n    isMatch: (questioned, actual, options = {}) => {\n        const {\n            matchFunc = (x, y) => options.allowRegex ? RegExp(x).test(y) : x === y, \n            arrayMatchFunc = Array.prototype.some, \n            defaultResult = true\n        } = options;\n        if (!questioned)\n            return defaultResult;\n        if (Array.isArray(questioned))\n            return !!arrayMatchFunc.call(questioned, x => helpers.isMatch(x, actual, options));\n        if (typeof(questioned) === 'object' && typeof(actual) === 'object')\n            return Object.keys(questioned).every(x => helpers.isMatch(questioned[x], actual[x], options));\n        return matchFunc(questioned, actual);\n    },\n    includesCaseInsensitive: (x, y) => x && y && x.toLowerCase().includes(y.toLowerCase()),\n    filterProperties: (obj, filter, subFilter, removeEmptyObjects) => {\n        subFilter = subFilter || (x => x);\n        return Object.keys(obj).filter(x => filter(x, obj[x]))\n                               .map(x => ({ key: x, value: subFilter(obj[x]) }))\n                               .filter(x => !removeEmptyObjects || (typeof(x.value) !== 'object' || Object.keys(x.value).length > 0))\n                               .reduce((res, curr) => (res[curr.key] = curr.value) && res, {});\n    },\n    toArray: (obj) => Array.isArray(obj) ? obj : ([obj]),\n    generateRandomSuffix: () => 'xxxx'.replace(/[xy]/g, function(c) {\n        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);\n        return v.toString(16);\n    }),\n    makeExpirable: (object, options) => {\n        object.createdAt = new Date();\n        const minutesToExpire = options.minutesToExpire || options.minutes_to_expire || ((options.hoursToExpire || options.hours_to_expire || 0) * 60);\n        object.expiresAt = minutesToExpire > 0 ? new Date(object.createdAt.getTime() + minutesToExpire * 60000) : undefined;\n        return object;\n    },\n    isExpired: object => object.expiresAt && object.expiresAt < new Date(),\n    \n    getEntityDomain: entityOrId => (typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId).split('.')[0],\n    getEntityId: entityOrId => (typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId).split('.')[1],\n    getEntity: (id) => global.get('homeassistant.homeAssistant.states')[id],\n    getEntityState: (id) => { const entity = helpers.getEntity(id); return entity && entity.state; },\n    getEntities: (domain, state, {attributes, attributesMatchFunc, attributesNegateMatch, allowRegex} = {}) => {\n        const entities = global.get('homeassistant.homeAssistant.states');\n        const attributesMatchOptions = attributesNegateMatch ? { matchFunc: !attributesMatchFunc ? (x, y) => x !== y \n                                                                                                 : (x, y) => !attributesMatchFunc(x, y), \n                                                                 arrayMatchFunc: Array.prototype.every }\n                                                             : { matchFunc: attributesMatchFunc };\n        return Object.keys(entities).map(x => entities[x])\n                     .filter(x => x && helpers.isMatch(domain, helpers.getEntityDomain(x), {allowRegex}) && \n                                  helpers.isMatch(state, x.state) && \n                                  helpers.isMatch(attributes, x.attributes, attributesMatchOptions));\n    },\n    getEntitiesByConfig: (config, defaultConfig, defaultResult) => {\n        let include = config.include || {};\n        include.domains = include.domains || (include.domain && [include.domain]);\n        include.entities = include.entities || (include.entity && [include.entity]);\n        let exclude = config.exclude || {};\n        exclude.domains = exclude.domains || (exclude.domain && [exclude.domain]);\n        exclude.entities = exclude.entities || (exclude.entity && [exclude.entity]);\n        if (!include.domains && !include.entities) {\n            if (!exclude.domains && !exclude.entities) {\n                if (!defaultConfig) return defaultResult;\n                include = defaultConfig.include;\n                exclude = defaultConfig.exclude;\n            }\n            else {\n                include.allowRegex = true;\n                include.domains = ['.*'];\n            }\n        }\n        let entities = [];\n        include.domains && include.domains.forEach(domain => {\n            if (typeof(domain) !== 'string') return;\n            Array.prototype.push.apply(entities, helpers.getEntities(domain, null, {allowRegex: include.allowRegex}));\n        });\n        if (include.entities) {\n            if (include.allowRegex) {\n                Array.prototype.push.apply(entities, helpers.getEntities(\".*\", null, {allowRegex: true})\n                                                            .filter(x => helpers.isMatch(include.entities, x.entity_id, {allowRegex: true})));\n            }\n            else {\n                include.entities.forEach(entityId => {\n                    const entity = helpers.getEntity(entityId);\n                    entity && entities.push(entity);\n                });\n            }\n        }\n        const excludeMatchOptions = {allowRegex: exclude.allowRegex, defaultResult: false};\n        entities = entities.filter(x => !helpers.isMatch(exclude.domains, helpers.getEntityDomain(x), excludeMatchOptions) &&\n                                        !helpers.isMatch(exclude.entities, x.entity_id, excludeMatchOptions));\n        return entities;\n    },\n    getEntityIds: (domain, state, options) => {\n        return helpers.getEntities(domain, state, options).map(x => x.entity_id);\n    },\n    getServices: ({domain, service}) => {\n        return helpers.filterProperties(global.get('homeassistant.homeAssistant.services'),\n                                        d => !domain || d === domain,\n                                        d => helpers.filterProperties(d, x => !service || x === service, null, true),\n                                        true);\n    },\n    buildServiceCall: (entityOrId, service, data) => ({\n        domain: helpers.getEntityDomain(entityOrId),\n        service: service,\n        data: Object.assign(data || {}, {\n            entity_id: typeof(entityOrId) === 'object' ? entityOrId.entity_id : entityOrId\n        })\n    }),\n    buildServiceCalls: (entitiesOrIds, service, data) => entitiesOrIds.map(x => helpers.buildServiceCall(x, service, data)),\n    buildServiceCallFromState: (entityOrId, state) => {\n        switch (helpers.getEntityDomain(entityOrId)) {\n            case 'switch':\n                return helpers.buildServiceCall(entityOrId, `turn_${state}`);\n            default:\n                return null;\n        }\n    },\n    buildLogbookLog: (name, message, entityId) => ({\n        payload: {\n            domain: 'logbook',\n            service: 'log',\n            data: { name, message, entity_id: entityId }\n        }\n    }),\n    createSubContext: (context, prefix) => ({\n        get: (key) => context.get(`${prefix}.${key}`),\n        set: (key, value) => context.set(`${prefix}.${key}`, value)\n    }),\n    getPersonPhoneWifiConnection: person => {\n        if (typeof(person) === 'string') person = helpers.getEntity(person);\n        if (!person) return null;\n        const deviceTracker = person.attributes.source;\n        const deviceWifiEntityId = deviceTracker && deviceTracker.startsWith('device_tracker.') && \n                                   (deviceTracker.replace('device_tracker.', 'sensor.') + '_wifi_connection');\n        return !!deviceWifiEntityId ? helpers.getEntity(deviceWifiEntityId) : null;\n    },\n    isPersonAtHome: person => {\n        if (typeof(person) === 'string') person = helpers.getEntity(person);\n        if (!person) return false\n        if (person.state === 'home') return true;\n        const presenceConfig = global.get('configuration.events.presence') || {};\n        const phoneWifi = helpers.getPersonPhoneWifiConnection(person);\n        return phoneWifi && (presenceConfig.homeWifiNetworks || [presenceConfig.homeWifiNetwork]).includes(phoneWifi.state);\n    }\n};\nglobal.set('helpers', helpers);\n",
         "finalize": "",
         "libs": [],
         "x": 510,
@@ -287,7 +288,7 @@
         "repair": false,
         "outputs": 3,
         "x": 650,
-        "y": 800,
+        "y": 820,
         "wires": [
             [
                 "8e53cbbf.ead748"
@@ -314,7 +315,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 850,
-        "y": 860,
+        "y": 880,
         "wires": []
     },
     {
@@ -365,7 +366,7 @@
         "payload": "{\t  \"event\": {\t    \"action\": \"spotify.switch_device\",\t    \"params\": '{\"device\": \"Bedroom\"}'\t  }\t}",
         "payloadType": "jsonata",
         "x": 210,
-        "y": 840,
+        "y": 860,
         "wires": [
             [
                 "207701de.de859e"
@@ -435,7 +436,7 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Update configuration setting",
-        "func": "const helpers = global.get('helpers');\nconst getConfigValue = (entityId, state) => {\n    const configItemType = helpers.getEntityDomain(entityId).replace('input_', '');\n    switch (configItemType) {\n        case 'boolean':\n            return state === 'on';\n        case 'number':\n            return parseInt(state);\n    }\n    return state;\n};\n\n\nconst configItemName = (global.get('configuration.inputEntitiesToConfigMap') || {})[msg.data.event.entity_id];\nif (!configItemName) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not a config item: ${msg.data.event.entity_id}`});\n    return null;\n}\n    \nconst newState = msg.data.event.new_state.state;\nconst oldState = msg.data.event.old_state.state;\nif (newState === oldState) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not changed: ${configItemName}`});\n    return null;\n}\n\nconst value = getConfigValue(msg.data.event.entity_id, newState);\nconst valueFromConfig = global.get(`configuration.${configItemName}`);\nif (typeof(valueFromConfig) !== typeof(value)) {\n    node.error(`Can't update '${configItemName} from '${valueFromConfig}' (${typeof(valueFromConfig)}) to '${value}' (${typeof(value)})`);\n    node.status({fill:\"red\",shape:\"dot\",text:`can't update: ${configItemName}`});\n    return null;\n}\nif (value === valueFromConfig) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not updated: ${configItemName}`});\n    return null;\n}\n\nglobal.set(`configuration.${configItemName}`, value);\nmsg.payload = JSON.stringify(global.get('configuration'), null, 4);\nnode.status({fill:\"green\",shape:\"dot\",text:`${configItemName} = ${value}, ${new Date().toLocaleString()}`});\nreturn msg;",
+        "func": "const helpers = global.get('helpers');\nconst getConfigValue = (entityId, state) => {\n    const configItemType = helpers.getEntityDomain(entityId).replace('input_', '');\n    switch (configItemType) {\n        case 'boolean':\n            return state === 'on';\n        case 'number':\n            return parseInt(state);\n    }\n    return state;\n};\n\n\nconst configItemName = (global.get('configuration.input_entities_to_config_map') || {})[msg.data.event.entity_id];\nif (!configItemName) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not a config item: ${msg.data.event.entity_id}`});\n    return null;\n}\n    \nconst newState = msg.data.event.new_state.state;\nconst oldState = msg.data.event.old_state.state;\nif (newState === oldState) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not changed: ${configItemName}`});\n    return null;\n}\n\nconst value = getConfigValue(msg.data.event.entity_id, newState);\nconst valueFromConfig = global.get(`configuration.${configItemName}`);\nif (typeof(valueFromConfig) !== typeof(value)) {\n    node.error(`Can't update '${configItemName} from '${valueFromConfig}' (${typeof(valueFromConfig)}) to '${value}' (${typeof(value)})`);\n    node.status({fill:\"red\",shape:\"dot\",text:`can't update: ${configItemName}`});\n    return null;\n}\nif (value === valueFromConfig) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not updated: ${configItemName}`});\n    return null;\n}\n\nglobal.set(`configuration.${configItemName}`, value);\nmsg.payload = JSON.stringify(global.get('configuration'), null, 4);\nnode.status({fill:\"green\",shape:\"dot\",text:`${configItemName} = ${value}, ${new Date().toLocaleString()}`});\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -491,7 +492,7 @@
         "outputinitially": false,
         "state_type": "str",
         "x": 170,
-        "y": 680,
+        "y": 700,
         "wires": [
             [
                 "496d3fef.e6627"
@@ -509,8 +510,9 @@
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 480,
-        "y": 680,
+        "y": 700,
         "wires": [
             [
                 "7a93c87e.6cf148"
@@ -535,7 +537,7 @@
         "output_location_type": "none",
         "mustacheAltTags": false,
         "x": 730,
-        "y": 680,
+        "y": 700,
         "wires": [
             []
         ]
@@ -585,6 +587,7 @@
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 410,
         "y": 280,
         "wires": [
@@ -603,7 +606,7 @@
             "afca09c.f3cf8f8"
         ],
         "x": 795,
-        "y": 780,
+        "y": 800,
         "wires": []
     },
     {
@@ -633,7 +636,7 @@
         "sat": true,
         "sun": true,
         "x": 580,
-        "y": 940,
+        "y": 960,
         "wires": [
             [
                 "72d43a1e.f2fde4"
@@ -651,7 +654,7 @@
         "initialize": "",
         "finalize": "",
         "x": 310,
-        "y": 940,
+        "y": 960,
         "wires": [
             [
                 "a57dd432.c09468"
@@ -668,7 +671,7 @@
         ],
         "uncaught": false,
         "x": 130,
-        "y": 940,
+        "y": 960,
         "wires": [
             [
                 "8225f0c4.390ad"
@@ -698,7 +701,7 @@
         "repair": false,
         "outputs": 2,
         "x": 710,
-        "y": 940,
+        "y": 960,
         "wires": [
             [
                 "8225f0c4.390ad",
@@ -725,7 +728,7 @@
         "randomUnits": "seconds",
         "drop": false,
         "x": 450,
-        "y": 940,
+        "y": 960,
         "wires": [
             [
                 "c2f53bb1.0a10a8"
@@ -754,7 +757,7 @@
         "payload": "",
         "payloadType": "date",
         "x": 160,
-        "y": 980,
+        "y": 1000,
         "wires": [
             [
                 "8225f0c4.390ad"
@@ -766,14 +769,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Save or restore state",
-        "func": "const statePreservation = msg.actions && (msg.actions.statePreservation || msg.actions.state_preservation);\nif (!statePreservation) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\nif (!msg.context) {\n    node.status({fill:\"red\",shape:\"dot\",text:`msg.context is missing`});\n    return\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nswitch (statePreservation.action) {\n    case 'save':\n        const entitiesToSave = helpers.getEntitiesByConfig(statePreservation, null, [])\n                                      .filter(x => !(statePreservation.ignoreStates || ['off','idle']).includes(x.state));\n        if (entitiesToSave.length === 0) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no entities to save`});\n            return;\n        }\n        const previousStateScene = `previous_state_autogenerated_${helpers.generateRandomSuffix()}`;\n        servicesToCall.push({\n            domain: 'scene',\n            service: 'create',\n            data: {\n                scene_id: previousStateScene,\n                snapshot_entities: entitiesToSave.map(x => x.entity_id)\n            }\n        });\n        const previousState = { sceneId: `scene.${previousStateScene}` }\n        msg.context.set('statePreservation.previousState', helpers.makeExpirable(previousState, statePreservation));\n        node.status({fill:\"blue\",shape:\"dot\",text:`state saved, ${new Date().toLocaleString()}`});\n        break;\n    case 'restore':\n    const stateToRestore = msg.context.get('statePreservation.previousState');\n        if (!stateToRestore) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no state to restore`});\n            return;\n        }\n        if (helpers.isExpired(stateToRestore)) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`saved state is expired, ${new Date().toLocaleString()}`});\n        }\n        else {\n            servicesToCall.push(helpers.buildServiceCall(stateToRestore.sceneId, 'turn_on'));\n            Array.prototype.push.apply(servicesToCall, stateToRestore.sericesToCall || []);\n            node.status({fill:\"green\",shape:\"dot\",text:`state restored, ${new Date().toLocaleString()}`});\n        }\n        servicesToCall.push({\n            domain: 'scene',\n            service: 'reload'\n        });\n        msg.context.set('statePreservation.previousState', undefined);\n        break;\n    default:\n        node.status({fill:\"red\",shape:\"dot\",text:`unsupported action: '${statePreservation.action}'`});\n        return;\n}\n\nreturn [ \n    servicesToCall.map(x => ({ \n        payload: x ,\n        delay: (statePreservation.offsetSeconds || 0) * 1000\n    }))\n];",
+        "func": "const statePreservation = msg.actions && (msg.actions.state_preservation || msg.actions.statePreservation);\nif (!statePreservation) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\nif (!msg.context) {\n    node.status({fill:\"red\",shape:\"dot\",text:`msg.context is missing`});\n    return\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nswitch (statePreservation.action) {\n    case 'save':\n        const entitiesToSave = helpers.getEntitiesByConfig(statePreservation, null, [])\n                                      .filter(x => !(statePreservation.ignore_states || ['off','idle']).includes(x.state));\n        if (entitiesToSave.length === 0) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no entities to save`});\n            return;\n        }\n        const previousStateScene = `previous_state_autogenerated_${helpers.generateRandomSuffix()}`;\n        servicesToCall.push({\n            domain: 'scene',\n            service: 'create',\n            data: {\n                scene_id: previousStateScene,\n                snapshot_entities: entitiesToSave.map(x => x.entity_id)\n            }\n        });\n        const previousState = { sceneId: `scene.${previousStateScene}` }\n        msg.context.set('statePreservation.previousState', helpers.makeExpirable(previousState, statePreservation));\n        node.status({fill:\"blue\",shape:\"dot\",text:`state saved, ${new Date().toLocaleString()}`});\n        break;\n    case 'restore':\n    const stateToRestore = msg.context.get('statePreservation.previousState');\n        if (!stateToRestore) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no state to restore`});\n            return;\n        }\n        if (helpers.isExpired(stateToRestore)) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`saved state is expired, ${new Date().toLocaleString()}`});\n        }\n        else {\n            servicesToCall.push(helpers.buildServiceCall(stateToRestore.sceneId, 'turn_on'));\n            Array.prototype.push.apply(servicesToCall, stateToRestore.sericesToCall || []);\n            node.status({fill:\"green\",shape:\"dot\",text:`state restored, ${new Date().toLocaleString()}`});\n        }\n        servicesToCall.push({\n            domain: 'scene',\n            service: 'reload'\n        });\n        msg.context.set('statePreservation.previousState', undefined);\n        break;\n    default:\n        node.status({fill:\"red\",shape:\"dot\",text:`unsupported action: '${statePreservation.action}'`});\n        return;\n}\n\nreturn [ \n    servicesToCall.map(x => ({ \n        payload: x ,\n        delay: (statePreservation.offset_seconds || 0) * 1000\n    }))\n];",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
         "x": 460,
-        "y": 1380,
+        "y": 1400,
         "wires": [
             [
                 "45a5b024.2d13e"
@@ -795,7 +798,7 @@
             "f6cd8e31.5b606"
         ],
         "x": 55,
-        "y": 1140,
+        "y": 1160,
         "wires": [
             [
                 "96d3c3ff.a824f"
@@ -820,7 +823,7 @@
         "output_location_type": "none",
         "mustacheAltTags": false,
         "x": 1010,
-        "y": 1220,
+        "y": 1240,
         "wires": [
             []
         ]
@@ -841,7 +844,7 @@
         "randomUnits": "seconds",
         "drop": false,
         "x": 750,
-        "y": 1220,
+        "y": 1240,
         "wires": [
             [
                 "691bd888.7315d8"
@@ -865,13 +868,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Apply scenes",
-        "func": "const scenes = msg.actions && (msg.actions.scenes || msg.actions.scene);\nif (!scenes) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\n(Array.isArray(scenes) ? scenes : [scenes]).forEach(scene => {\n    if (typeof(scene) === 'string') {\n        servicesToCall.push({ payload: helpers.buildServiceCall(scene, 'turn_on') });\n    }\n    else {\n        Array.prototype.push.apply(servicesToCall, (scene.names || [scene.name]).map(x => ({ \n            payload: helpers.buildServiceCall(x, 'turn_on'),\n            delay: (scene.offsetSeconds || 0) * 1000\n        })));\n    }\n});\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} scene(s) applied, ${new Date().toLocaleString()}`});\n\nreturn [ servicesToCall ];",
+        "func": "const scenes = msg.actions && (msg.actions.scenes || msg.actions.scene);\nif (!scenes) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\n(Array.isArray(scenes) ? scenes : [scenes]).forEach(scene => {\n    if (typeof(scene) === 'string') {\n        servicesToCall.push({ payload: helpers.buildServiceCall(scene, 'turn_on') });\n    }\n    else {\n        Array.prototype.push.apply(servicesToCall, (scene.names || [scene.name]).map(x => ({ \n            payload: helpers.buildServiceCall(x, 'turn_on'),\n            delay: (scene.offset_seconds || 0) * 1000\n        })));\n    }\n});\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} scene(s) applied, ${new Date().toLocaleString()}`});\n\nreturn [ servicesToCall ];",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 430,
-        "y": 1260,
+        "y": 1280,
         "wires": [
             [
                 "45a5b024.2d13e"
@@ -883,13 +887,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Pause or resume media players",
-        "func": "const media = msg.actions && (msg.actions.media || msg.actions.mediaPlayer || msg.actions.media_player);\nif (!media) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\nif (!msg.context) {\n    node.status({fill:\"red\",shape:\"dot\",text:`msg.context is missing`});\n    return\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nswitch (media.action) {\n    case 'pause':\n        const playersToFilter = media.players || (media.player && [media.player]);\n        const playingMediaPlayers =\n                helpers.getEntityIds('media_player', 'playing', \n                                     {\n                                         attributes: { source: media.playerSourceNotContains || [] }, \n                                         attributesMatchFunc: (x, y) => helpers.includesCaseInsensitive(y, x),\n                                         attributesNegateMatch: true\n                                     })\n                       .filter(x => (!playersToFilter || playersToFilter.includes(x)) && \n                                    x !== msg.entity.entity_id);\n        if (playingMediaPlayers.length === 0) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no relevant player is playing`});\n            return;\n        }\n        Array.prototype.push.apply(servicesToCall, helpers.buildServiceCalls(playingMediaPlayers, 'media_pause'));\n        const previousState = { pausedPlayers: playingMediaPlayers };\n        msg.context.set('media.previousState', helpers.makeExpirable(previousState, media));\n        node.status({fill:\"green\",shape:\"dot\",text:`${playingMediaPlayers.length} player(s) paused, ${new Date().toLocaleString()}`});\n        break;\n    case 'resume':\n        const stateToRestore = msg.context.get('media.previousState');\n        if (!stateToRestore) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no player to resume`});\n            return;\n        }\n        if (!helpers.isExpired(stateToRestore)) {\n            Array.prototype.push.apply(servicesToCall, helpers.buildServiceCalls(stateToRestore.pausedPlayers, 'media_play'));\n            node.status({fill:\"green\",shape:\"dot\",text:`${stateToRestore.pausedPlayers.length} player(s) resumed, ${new Date().toLocaleString()}`});\n        }\n        else {\n            node.status({fill:\"grey\",shape:\"dot\",text:`saved state is expired, ${new Date().toLocaleString()}`});\n        }\n        msg.context.set('media.previousState', undefined);\n        break;\n    default:\n        node.status({fill:\"red\",shape:\"dot\",text:`unsupported action: '${media.action}'`});\n        return;\n}\n\nreturn [ \n    servicesToCall.map(x => ({ \n        payload: x ,\n        delay: (media.offsetSeconds || 0) * 1000\n    }))\n];",
+        "func": "const media = msg.actions && (msg.actions.media || msg.actions.mediaPlayer || msg.actions.media_player);\nif (!media) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\nif (!msg.context) {\n    node.status({fill:\"red\",shape:\"dot\",text:`msg.context is missing`});\n    return\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nswitch (media.action) {\n    case 'pause':\n        const playersToFilter = media.players || (media.player && [media.player]);\n        const playingMediaPlayers =\n                helpers.getEntityIds('media_player', 'playing', \n                                     {\n                                         attributes: { source: media.player_source_not_contains || [] }, \n                                         attributesMatchFunc: (x, y) => helpers.includesCaseInsensitive(y, x),\n                                         attributesNegateMatch: true\n                                     })\n                       .filter(x => (!playersToFilter || playersToFilter.includes(x)) && \n                                    x !== msg.entity.entity_id);\n        if (playingMediaPlayers.length === 0) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no relevant player is playing`});\n            return;\n        }\n        Array.prototype.push.apply(servicesToCall, helpers.buildServiceCalls(playingMediaPlayers, 'media_pause'));\n        const previousState = { pausedPlayers: playingMediaPlayers };\n        msg.context.set('media.previousState', helpers.makeExpirable(previousState, media));\n        node.status({fill:\"green\",shape:\"dot\",text:`${playingMediaPlayers.length} player(s) paused, ${new Date().toLocaleString()}`});\n        break;\n    case 'resume':\n        const stateToRestore = msg.context.get('media.previousState');\n        if (!stateToRestore) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`no player to resume`});\n            return;\n        }\n        if (!helpers.isExpired(stateToRestore)) {\n            Array.prototype.push.apply(servicesToCall, helpers.buildServiceCalls(stateToRestore.pausedPlayers, 'media_play'));\n            node.status({fill:\"green\",shape:\"dot\",text:`${stateToRestore.pausedPlayers.length} player(s) resumed, ${new Date().toLocaleString()}`});\n        }\n        else {\n            node.status({fill:\"grey\",shape:\"dot\",text:`saved state is expired, ${new Date().toLocaleString()}`});\n        }\n        msg.context.set('media.previousState', undefined);\n        break;\n    default:\n        node.status({fill:\"red\",shape:\"dot\",text:`unsupported action: '${media.action}'`});\n        return;\n}\n\nreturn [ \n    servicesToCall.map(x => ({ \n        payload: x ,\n        delay: (media.offset_seconds || 0) * 1000\n    }))\n];",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 490,
-        "y": 1440,
+        "y": 1460,
         "wires": [
             [
                 "45a5b024.2d13e"
@@ -901,13 +906,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "preparations & filter",
-        "func": "const helpers = global.get('helpers');\n\nif (msg.actions && (typeof(msg.actions) === 'string' || \n                    (helpers.isActive(msg.actions) && typeof(msg.actions.reference) === 'string'))) {\n    const reference = msg.actions.reference || msg.actions;\n    msg.actions = global.get(`configuration.${reference.startsWith('actions.') ? 'actions.' : ''}${reference}`);\n}\n\nif (!msg.actions) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`actions not available`});\n    return;\n}\n\nmsg.actions = helpers.filterProperties(msg.actions,\n                                       (_, x) => helpers.isActive(x),\n                                       o => helpers.filterProperties(o, (_, x) => helpers.isActive(x)));\nif ((!helpers.isActive(msg.actions) && !msg.forceExecution) || Object.keys(msg.actions).length === 0) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions to perform`});\n    return;\n}\nconst restrictions = msg.restrictions || msg.actions.restrictions || {};\nif (restrictions.mustBeAtHome) {\n    const isMatchingPerson = x => restrictions.mustBeAtHome === true || \n           (Array.isArray(restrictions.mustBeAtHome) && restrictions.mustBeAtHome.includes(helpers.getEntityId(x))) || \n           (typeof(restrictions.mustBeAtHome) === 'string' && RegExp(restrictions.mustBeAtHome).test(helpers.getEntityId(x)));\n    if (!helpers.getEntities('person').find(x => isMatchingPerson(x) && helpers.isPersonAtHome(x))) {\n        node.status({fill:\"grey\",shape:\"dot\",text:`no person is at home`});\n        return;\n    }\n}\n\nmsg.delay = (msg.actions.offsetSeconds || 0) * 1000;\nmsg.entity = msg.entity || (msg.data && msg.data.event && msg.data.event.new_state) || {};\nmsg.entity.attributes = msg.entity.attributes || {};\nconst entityId = msg.entity.entity_id || 'entity.unknown';\nconst entityName = msg.entity.attributes.friendly_name || entityId;\nconst state = msg.entity.state || '(unknown state)';\nconst actionsDescription = Object.keys(msg.actions).filter(x => x !== 'restrictions')\n                                 .map(x => msg.actions[x].action ? `${x}.${msg.actions[x].action}` : x).join(', ');\nconst singleAction = Object.keys(msg.actions).length === 1;\nconst logbookText = `change to '${state}' raised action${singleAction ? '' : 's'} of type ${actionsDescription} by Node-RED`;\nconst logbookMsg = helpers.buildLogbookLog(entityName, logbookText, entityId);\nnode.status({fill:\"green\",shape:\"dot\",\n             text:`handing ${entityId} change to ${state}, ${new Date().toLocaleString()}`});\nreturn [ msg, logbookMsg ];",
+        "func": "const helpers = global.get('helpers');\n\nif (msg.actions && (typeof(msg.actions) === 'string' || \n                    (helpers.isActive(msg.actions) && typeof(msg.actions.reference) === 'string'))) {\n    const reference = msg.actions.reference || msg.actions;\n    msg.actions = global.get(`configuration.${reference.startsWith('actions.') ? 'actions.' : ''}${reference}`);\n}\n\nif (!msg.actions) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`actions not available`});\n    return;\n}\n\nmsg.actions = helpers.filterProperties(msg.actions,\n                                       (_, x) => helpers.isActive(x),\n                                       o => helpers.filterProperties(o, (_, x) => helpers.isActive(x)));\nif ((!helpers.isActive(msg.actions) && !msg.forceExecution) || Object.keys(msg.actions).length === 0) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions to perform`});\n    return;\n}\nconst restrictions = msg.restrictions || msg.actions.restrictions || {};\nif (restrictions.must_be_at_home) {\n    const isMatchingPerson = x => restrictions.must_be_at_home === true || \n           (Array.isArray(restrictions.must_be_at_home) && restrictions.must_be_at_home.includes(helpers.getEntityId(x))) || \n           (typeof(restrictions.must_be_at_home) === 'string' && RegExp(restrictions.must_be_at_home).test(helpers.getEntityId(x)));\n    if (!helpers.getEntities('person').find(x => isMatchingPerson(x) && helpers.isPersonAtHome(x))) {\n        node.status({fill:\"grey\",shape:\"dot\",text:`no person is at home`});\n        return;\n    }\n}\n\nmsg.delay = (msg.actions.offset_seconds || 0) * 1000;\nmsg.entity = msg.entity || (msg.data && msg.data.event && msg.data.event.new_state) || {};\nmsg.entity.attributes = msg.entity.attributes || {};\nconst entityId = msg.entity.entity_id || 'entity.unknown';\nconst entityName = msg.entity.attributes.friendly_name || entityId;\nconst state = msg.entity.state || '(unknown state)';\nconst actionsDescription = Object.keys(msg.actions).filter(x => x !== 'restrictions')\n                                 .map(x => msg.actions[x].action ? `${x}.${msg.actions[x].action}` : x).join(', ');\nconst singleAction = Object.keys(msg.actions).length === 1;\nconst logbookText = `change to '${state}' raised action${singleAction ? '' : 's'} of type ${actionsDescription} by Node-RED`;\nconst logbookMsg = helpers.buildLogbookLog(entityName, logbookText, entityId);\nnode.status({fill:\"green\",shape:\"dot\",\n             text:`handing ${entityId} change to ${state}, ${new Date().toLocaleString()}`});\nreturn [ msg, logbookMsg ];",
         "outputs": 2,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 190,
-        "y": 1140,
+        "y": 1160,
         "wires": [
             [
                 "690f05d6.a76edc",
@@ -934,7 +940,7 @@
         "randomUnits": "seconds",
         "drop": false,
         "x": 230,
-        "y": 1220,
+        "y": 1240,
         "wires": [
             [
                 "536adaaa.c7e9c4",
@@ -978,7 +984,8 @@
         "y": 560,
         "wires": [
             [
-                "2955fa6c.84f086"
+                "2955fa6c.84f086",
+                "ce814253.3f3ff"
             ],
             []
         ]
@@ -987,13 +994,14 @@
         "id": "2955fa6c.84f086",
         "type": "function",
         "z": "4eeba49b.667c6c",
-        "name": "Find matching state actions",
-        "func": "const entityId = msg.data.event.entity_id;\nconst currentState = msg.data.event.new_state && msg.data.event.new_state.state;\nconst previousState = msg.data.event.old_state && msg.data.event.old_state.state;\nif (currentState === previousState || typeof(currentState) === 'undefined' || typeof(previousState) === 'undefined') return;\n\nconst statesActions = global.get(`configuration.events.states.${entityId}`);\nif (!statesActions) return;\n\nconst actions = statesActions[currentState] || \n                (statesActions.allowRegex && \n                 statesActions[Object.keys(statesActions).find(x => RegExp(x).test(currentState))]);\nif (!actions) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no actions for  ${entityId}=${currentState}`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nmsg.actions = actions.actions || actions;\nmsg.restrictions = actions.restrictions;\nmsg.context = helpers.createSubContext(context, entityId);\nnode.status({fill:\"green\",shape:\"dot\",text:`sent actions for ${entityId}=${currentState} at ${new Date().toLocaleString()}`});\nreturn msg;",
+        "name": "Find state event actions",
+        "func": "const entityId = msg.data.event.entity_id;\nconst currentState = msg.data.event.new_state && msg.data.event.new_state.state;\nconst previousState = msg.data.event.old_state && msg.data.event.old_state.state;\nif (currentState === previousState || typeof(currentState) === 'undefined' || typeof(previousState) === 'undefined') return;\n\nconst statesActions = global.get(`configuration.events.states.${entityId}`);\nif (!statesActions) return;\n\nconst actions = statesActions[currentState] || \n                (statesActions.allowRegex && \n                 statesActions[Object.keys(statesActions).find(x => RegExp(x).test(currentState))]);\nif (!actions) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no actions for  ${entityId}=${currentState}`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nmsg.actions = actions.actions || actions;\nmsg.restrictions = actions.restrictions;\nmsg.context = helpers.createSubContext(context, entityId);\nnode.status({fill:\"green\",shape:\"dot\",text:`sent actions for ${entityId}=${currentState} at ${new Date().toLocaleString()}`});\n\n\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
-        "x": 380,
+        "libs": [],
+        "x": 370,
         "y": 560,
         "wires": [
             [
@@ -1009,7 +1017,7 @@
         "links": [
             "1d0ae548.8bd06b"
         ],
-        "x": 535,
+        "x": 515,
         "y": 560,
         "wires": []
     },
@@ -1020,7 +1028,7 @@
         "name": "Handing actions (from all flows)",
         "info": "",
         "x": 170,
-        "y": 1100,
+        "y": 1120,
         "wires": []
     },
     {
@@ -1032,7 +1040,7 @@
             "1d0ae548.8bd06b"
         ],
         "x": 975,
-        "y": 940,
+        "y": 960,
         "wires": []
     },
     {
@@ -1049,7 +1057,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 410,
-        "y": 1140,
+        "y": 1160,
         "wires": []
     },
     {
@@ -1057,14 +1065,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Spotify playback",
-        "func": "const spotify = msg.actions && msg.actions.spotify;\nif (!spotify) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet playMsgs = [];\nlet setDeviceMsgs = [];\nfor (const [key, value] of Object.entries(spotify)) {\n    if (helpers.isActive(value)) {\n        const playlists = value.playlists || (value.playlist && [value.playlist]);\n        const devices = value.devices || (value.device && [value.device]);\n        if (!playlists || !playlists.length || !devices || !devices.length) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`playlists or devices not set, ${new Date().toLocaleString()}`});\n            return null;\n        }\n        \n        const spotifyConfig = global.get(`configuration.spotify.${key}`);\n        const globalDelay = (value.offsetSeconds || 1) * 1000;\n        const filter = (spotifyConfig && spotifyConfig.entityId) ? () => helpers.getEntityState(spotifyConfig.entityId) === 'playing' : null;\n        Array.prototype.push.apply(setDeviceMsgs, \n                                   devices.map((device, deviceIndex) => {\n                                       let delay = (device.offsetSeconds || 0) * 1000 + globalDelay;\n                                       return (device.volumeSteps || [device.volume]).map((volume, volumeIndex) => {\n                                           if (volumeIndex > 0) {\n                                               delay += (device.volumeStepsDelayInSeconds || 0) * 1000;\n                                           }\n                                           return {\n                                               user: key,\n                                               device: device.name,\n                                               volume: volume,\n                                               delay: delay,\n                                               filter: (deviceIndex > 0 && volumeIndex > 0) ? filter : null\n                                           };\n                                       });\n                                   }).reduce((a, b) => a.concat(b)));\n        \n        const playlist = playlists[Math.floor((Math.random()*playlists.length))];\n        const firstDeviceMsg = setDeviceMsgs.shift();\n        playMsgs.push({\n            ...firstDeviceMsg,\n            playlist: playlist,\n            shuffle: value.shuffle,\n            shuffleAfterFisrtSong: value.shuffleAfterFisrtSong\n        });\n    }\n}\n\nif (!playMsgs.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",\n             text:`play \"${playMsgs[0].playlist}\" on \"${setDeviceMsgs[0].device}\", ${new Date().toLocaleString()}`});\nreturn [\n    playMsgs,\n    setDeviceMsgs\n];",
+        "func": "const spotify = msg.actions && msg.actions.spotify;\nif (!spotify) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet playMsgs = [];\nlet setDeviceMsgs = [];\nfor (const [key, value] of Object.entries(spotify)) {\n    if (helpers.isActive(value)) {\n        const playlists = value.playlists || (value.playlist && [value.playlist]);\n        const devices = value.devices || (value.device && [value.device]);\n        if (!playlists || !playlists.length || !devices || !devices.length) {\n            node.status({fill:\"grey\",shape:\"dot\",text:`playlists or devices not set, ${new Date().toLocaleString()}`});\n            return null;\n        }\n        \n        const spotifyConfig = global.get(`configuration.spotify.${key}`);\n        const globalDelay = (value.offset_seconds || 1) * 1000;\n        const filter = (spotifyConfig && spotifyConfig.entity_id) ? () => helpers.getEntityState(spotifyConfig.entity_id) === 'playing' : null;\n        Array.prototype.push.apply(setDeviceMsgs, \n                                   devices.map((device, deviceIndex) => {\n                                       let delay = (device.offset_seconds || 0) * 1000 + globalDelay;\n                                       return (device.volumeSteps || [device.volume]).map((volume, volumeIndex) => {\n                                           if (volumeIndex > 0) {\n                                               delay += (device.volume_steps_delay_seconds || 0) * 1000;\n                                           }\n                                           return {\n                                               user: key,\n                                               device: device.name,\n                                               volume: volume,\n                                               delay: delay,\n                                               filter: (deviceIndex > 0 || volumeIndex > 0) ? filter : null\n                                           };\n                                       });\n                                   }).reduce((a, b) => a.concat(b)));\n        \n        const playlist = playlists[Math.floor((Math.random()*playlists.length))];\n        const firstDeviceMsg = setDeviceMsgs.shift();\n        playMsgs.push({\n            ...firstDeviceMsg,\n            playlist: playlist,\n            shuffle: value.shuffle,\n            shuffleAfterFirstSong: value.random_song\n        });\n    }\n}\n\nif (!playMsgs.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",\n             text:`play \"${playMsgs[0].playlist}\" on \"${setDeviceMsgs[0].device}\", ${new Date().toLocaleString()}`});\nreturn [\n    playMsgs,\n    setDeviceMsgs\n];",
         "outputs": 2,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
         "x": 440,
-        "y": 1620,
+        "y": 1640,
         "wires": [
             [
                 "27625cdc.c78ce4"
@@ -1090,7 +1098,7 @@
         "randomUnits": "seconds",
         "drop": false,
         "x": 610,
-        "y": 1600,
+        "y": 1620,
         "wires": [
             [
                 "c0ca05a.9e953f8"
@@ -1113,7 +1121,7 @@
         "randomUnits": "seconds",
         "drop": false,
         "x": 610,
-        "y": 1640,
+        "y": 1660,
         "wires": [
             [
                 "dc774778.f40c58"
@@ -1129,7 +1137,7 @@
             "9f6a852b.962768"
         ],
         "x": 695,
-        "y": 1600,
+        "y": 1620,
         "wires": []
     },
     {
@@ -1141,7 +1149,7 @@
             "9df37dd1.3520d"
         ],
         "x": 815,
-        "y": 1640,
+        "y": 1660,
         "wires": []
     },
     {
@@ -1149,13 +1157,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Climate (air conditioner) actions",
-        "func": "const climate = msg.actions && msg.actions.climate;\nif (!climate) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nlet cycleOnOffMsgs = [];\nfor (const [key, value] of Object.entries(climate)) {\n    if (helpers.isActive(value)) {\n        const config = Object.assign({}, value);\n        const entityId = config.entity || config.entityId || `climate.${key}`;\n        \n        if (config.action === 'start_on_off_cycle') {\n            let currentState = helpers.getEntityState(entityId);\n            if (msg.lastCycleState) {\n                if (msg.lastCycleState !== currentState && \n                    !(msg.lastCycleState === 'on' && currentState !== 'off')) {\n                    node.status({fill:\"grey\",shape:\"dot\",text:`cycle stopped - state changed from outside`});\n                    context.set(`activeCycles.${helpers.getEntityId(entityId)}`, undefined);\n                }\n                if (!context.get(`activeCycles.${helpers.getEntityId(entityId)}`))\n                    return;\n                const needToTurnOff = msg.lastCycleState !== 'off';\n                currentState = needToTurnOff ? 'off' : (config.mode || 'on');\n                config.action = needToTurnOff ? 'turn_off' : 'turn_on';\n                if (needToTurnOff) {\n                    config.mode = 'off';\n                    config.presetMode = undefined;\n                    config.temperature = undefined;\n                }\n            }\n            config.cycleTimes = config.cycleTimes || {};\n            cycleOnOffMsgs.push({\n                actions: { climate: { [key]: value } },\n                lastCycleState: currentState,\n                delay: 60000 * (currentState === 'off' ? (config.cycleTimes.offMinutes || 10)\n                                                       : (config.cycleTimes.onMinutes || 10))\n            });\n            if (!msg.lastCycleState) {\n                if (context.get(`activeCycles.${helpers.getEntityId(entityId)}`)) {\n                    node.warn(`There's already an active climate on-off cycle for entity ${entityId}`);\n                    cycleOnOffMsgs.pop();\n                }\n                context.set(`activeCycles.${helpers.getEntityId(entityId)}`, true);\n                continue;\n            }\n        }\n        if (config.action === 'stop_on_off_cycle') {\n            context.set(`activeCycles.${helpers.getEntityId(entityId)}`, undefined);\n            continue;\n        }\n        if (config.action === 'turn_on' && !config.mode && !config.temperature) {\n            config.temperature = helpers.getEntity(entityId).attributes.temperature;\n        }\n        if (config.action === 'turn_off' && !config.mode) {\n            config.mode = 'off';\n        }\n        \n        if (config.temperature) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_temperature', \n                                                  { temperature: config.temperature}),\n                delay: (config.offsetSeconds || 0) * 1000\n            });\n        }\n        if (config.mode) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_hvac_mode',\n                                                  { hvac_mode: config.mode }),\n                delay: (config.offsetSeconds || 0) * 1000\n            });\n        }\n        if (config.presetMode) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_preset_mode',\n                                                  { preset_mode: config.presetMode }),\n                delay: (config.offsetSeconds || 0) * 1000\n            });\n        }\n    }\n}\n\nif (!servicesToCall.length && !cycleOnOffMsgs.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nif (!msg.lastCycleState) {\n    node.status({fill:\"green\",shape:\"dot\",text:\n                 `${servicesToCall.length + cycleOnOffMsgs.length} action(s) applied, ${new Date().toLocaleString()}`});\n}\nreturn [ servicesToCall, cycleOnOffMsgs ];",
+        "func": "const climate = msg.actions && msg.actions.climate;\nif (!climate) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\nlet servicesToCall = [];\nlet cycleOnOffMsgs = [];\nfor (const [key, value] of Object.entries(climate)) {\n    if (helpers.isActive(value)) {\n        const config = Object.assign({}, value);\n        const entityId = config.entity || config.entity_id || `climate.${key}`;\n        \n        if (config.action === 'start_on_off_cycle') {\n            let currentState = helpers.getEntityState(entityId);\n            if (msg.lastCycleState) {\n                if (msg.lastCycleState !== currentState && \n                    !(msg.lastCycleState === 'on' && currentState !== 'off')) {\n                    node.status({fill:\"grey\",shape:\"dot\",text:`cycle stopped - state changed from outside`});\n                    context.set(`activeCycles.${helpers.getEntityId(entityId)}`, undefined);\n                }\n                if (!context.get(`activeCycles.${helpers.getEntityId(entityId)}`))\n                    return;\n                const needToTurnOff = msg.lastCycleState !== 'off';\n                currentState = needToTurnOff ? 'off' : (config.mode || 'on');\n                config.action = needToTurnOff ? 'turn_off' : 'turn_on';\n                if (needToTurnOff) {\n                    config.mode = 'off';\n                    config.preset_mode = undefined;\n                    config.temperature = undefined;\n                }\n            }\n            config.cycle_times = config.cycle_times || {};\n            cycleOnOffMsgs.push({\n                actions: { climate: { [key]: value } },\n                lastCycleState: currentState,\n                delay: 60000 * (currentState === 'off' ? (config.cycle_times.off_minutes || 10)\n                                                       : (config.cycle_times.on_minutes || 10))\n            });\n            if (!msg.lastCycleState) {\n                if (context.get(`activeCycles.${helpers.getEntityId(entityId)}`)) {\n                    node.warn(`There's already an active climate on-off cycle for entity ${entityId}`);\n                    cycleOnOffMsgs.pop();\n                }\n                context.set(`activeCycles.${helpers.getEntityId(entityId)}`, true);\n                continue;\n            }\n        }\n        if (config.action === 'stop_on_off_cycle') {\n            context.set(`activeCycles.${helpers.getEntityId(entityId)}`, undefined);\n            continue;\n        }\n        if (config.action === 'turn_on' && !config.mode && !config.temperature) {\n            config.temperature = helpers.getEntity(entityId).attributes.temperature;\n        }\n        if (config.action === 'turn_off' && !config.mode) {\n            config.mode = 'off';\n        }\n        \n        if (config.temperature) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_temperature', \n                                                  { temperature: config.temperature}),\n                delay: (config.offset_seconds || 0) * 1000\n            });\n        }\n        if (config.mode) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_hvac_mode',\n                                                  { hvac_mode: config.mode }),\n                delay: (config.offset_seconds || 0) * 1000\n            });\n        }\n        if (config.presetMode) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_preset_mode',\n                                                  { preset_mode: config.presetMode }),\n                delay: (config.offset_seconds || 0) * 1000\n            });\n        }\n    }\n}\n\nif (!servicesToCall.length && !cycleOnOffMsgs.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nif (!msg.lastCycleState) {\n    node.status({fill:\"green\",shape:\"dot\",text:\n                 `${servicesToCall.length + cycleOnOffMsgs.length} action(s) applied, ${new Date().toLocaleString()}`});\n}\nreturn [ servicesToCall, cycleOnOffMsgs ];",
         "outputs": 2,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 490,
-        "y": 1500,
+        "y": 1520,
         "wires": [
             [
                 "45a5b024.2d13e"
@@ -1170,13 +1179,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Cover (blinds) actions",
-        "func": "const cover = msg.actions && msg.actions.cover;\nif (!cover) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet servicesToCall = [];\nfor (const [key, value] of Object.entries(cover)) {\n    if (helpers.isActive(value)) {\n        const entityId = value.entity || value.entityId || `cover.${key}`;\n        const currentPosition = helpers.getEntity(entityId).attributes.current_position;\n        const shouldChangeTo = pos => value.action === 'open' ? pos > currentPosition : \n                                      value.action === 'close' ? pos < currentPosition :\n                                      pos !== currentPosition;\n        if (value.action && typeof(value.position) === 'undefined' && !value.positionSteps) {\n            value.position = value.action === 'open' ? 100 : \n                             value.action === 'close' ? 0 : \n                             undefined;\n        }\n        if (typeof(value.position) !== 'undefined' && shouldChangeTo(value.position)) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_cover_position', { position: value.position }),\n                delay: (value.offsetSeconds || 0) * 1000\n            });\n        }\n        else if (value.positionSteps) {\n            let delay = (value.offsetSeconds || 0) * 1000;\n            const steps = value.positionSteps.filter(shouldChangeTo);\n            steps.forEach((step, index) => {\n                delay += index === 0 ? 0 : (value.positionStepsDelayInSeconds || 0) * 1000;\n                servicesToCall.push({ \n                    payload: helpers.buildServiceCall(entityId, 'set_cover_position', { position: step }),\n                    delay: delay,\n                    filter: () => helpers.getEntity(entityId).attributes.current_position === \n                                  (index === 0 ? currentPosition : steps[index - 1])\n                });\n            });\n        }\n    }\n}\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} action(s) applied, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
+        "func": "const cover = msg.actions && msg.actions.cover;\nif (!cover) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet servicesToCall = [];\nfor (const [key, value] of Object.entries(cover)) {\n    if (helpers.isActive(value)) {\n        const entityId = value.entity || value.entity_id || `cover.${key}`;\n        const currentPosition = helpers.getEntity(entityId).attributes.current_position;\n        const shouldChangeTo = pos => value.action === 'open' ? pos > currentPosition : \n                                      value.action === 'close' ? pos < currentPosition :\n                                      pos !== currentPosition;\n        if (value.action && typeof(value.position) === 'undefined' && !value.position_steps) {\n            value.position = value.action === 'open' ? 100 : \n                             value.action === 'close' ? 0 : \n                             undefined;\n        }\n        if (typeof(value.position) !== 'undefined' && shouldChangeTo(value.position)) {\n            servicesToCall.push({ \n                payload: helpers.buildServiceCall(entityId, 'set_cover_position', { position: value.position }),\n                delay: (value.offset_seconds || 0) * 1000\n            });\n        }\n        else if (value.position_steps) {\n            let delay = (value.offset_seconds || 0) * 1000;\n            const steps = value.position_steps.filter(shouldChangeTo);\n            steps.forEach((step, index) => {\n                delay += index === 0 ? 0 : (value.position_steps_delay_seconds || 0) * 1000;\n                servicesToCall.push({ \n                    payload: helpers.buildServiceCall(entityId, 'set_cover_position', { position: step }),\n                    delay: delay,\n                    filter: () => helpers.getEntity(entityId).attributes.current_position === \n                                  (index === 0 ? currentPosition : steps[index - 1])\n                });\n            });\n        }\n    }\n}\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active actions`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} action(s) applied, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 460,
-        "y": 1560,
+        "y": 1580,
         "wires": [
             [
                 "45a5b024.2d13e"
@@ -1194,7 +1204,7 @@
         "initialize": "",
         "finalize": "",
         "x": 870,
-        "y": 1220,
+        "y": 1240,
         "wires": [
             [
                 "6ee57d21.8fb964",
@@ -1207,13 +1217,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Service calls",
-        "func": "const services = msg.actions && (msg.actions.services || msg.actions.service);\nif (!services) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet servicesToCall = [];\nfor (const [key, value] of Object.entries(services)) {\n    if (helpers.isActive(value)) {\n        servicesToCall.push({\n            payload: {\n                domain: helpers.getEntityDomain(value.service || key),\n                service: helpers.getEntityId(value.service || key),\n                data: value.data || (!value.service && !value.offsetSeconds && value)\n            },\n            delay: (value.offsetSeconds || 0) * 1000\n        });\n    }\n}\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active services`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} service(s) called, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
+        "func": "const services = msg.actions && (msg.actions.services || msg.actions.service);\nif (!services) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\n\nlet servicesToCall = [];\nfor (const [key, value] of Object.entries(services)) {\n    if (helpers.isActive(value)) {\n        servicesToCall.push({\n            payload: {\n                domain: helpers.getEntityDomain(value.service || key),\n                service: helpers.getEntityId(value.service || key),\n                data: value.data || (!value.service && !value.offset_seconds && value)\n            },\n            delay: (value.offset_seconds || 0) * 1000\n        });\n    }\n}\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no active services`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} service(s) called, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 430,
-        "y": 1200,
+        "y": 1220,
         "wires": [
             [
                 "45a5b024.2d13e"
@@ -1225,14 +1236,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "Turn off devices",
-        "func": "const turnOff = msg.actions && (msg.actions.turnOff || msg.actions.turn_off);\nif (!turnOff) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\nconst defaultConfig = {\n    include: {\n        domains: Object.keys(helpers.getServices({service: 'turn_off'}))\n                       .filter(x => !['homeassistant','automation','script','input_'].find(e => x.startsWith(e)))\n    }\n};\nif (!(turnOff.include && (turnOff.include.domains || turnOff.include.entities))) {\n    turnOff.include = {\n        ...(turnOff.include || {}),\n        domains: defaultConfig.include.domains\n    };\n}\nconst entities = helpers.getEntitiesByConfig(turnOff, defaultConfig);\nconst servicesToCall = entities.map(entity => ({\n    payload: helpers.buildServiceCall(entity, 'turn_off'),\n    delay: (turnOff.offsetSeconds || 0) * 1000\n}));\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no entities to turn off`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} entities turned off, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
+        "func": "const turnOff = msg.actions && (msg.actions.turn_off || msg.actions.turnOff);\nif (!turnOff) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`not requested`});\n    return;\n}\n\nconst helpers = global.get('helpers');\nconst defaultConfig = {\n    include: {\n        domains: Object.keys(helpers.getServices({service: 'turn_off'}))\n                       .filter(x => !['homeassistant','automation','script','input_'].find(e => x.startsWith(e)))\n    }\n};\nif (!(turnOff.include && (turnOff.include.domains || turnOff.include.entities))) {\n    turnOff.include = {\n        ...(turnOff.include || {}),\n        domains: defaultConfig.include.domains\n    };\n}\nconst entities = helpers.getEntitiesByConfig(turnOff, defaultConfig);\nconst servicesToCall = entities.map(entity => ({\n    payload: helpers.buildServiceCall(entity, 'turn_off'),\n    delay: (turnOff.offset_seconds || 0) * 1000\n}));\n\nif (!servicesToCall.length) {\n    node.status({fill:\"grey\",shape:\"dot\",text:`no entities to turn off`});\n    return;\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`${servicesToCall.length} entities turned off, ${new Date().toLocaleString()}`});\nreturn [ servicesToCall ];",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
         "x": 440,
-        "y": 1320,
+        "y": 1340,
         "wires": [
             [
                 "45a5b024.2d13e"
@@ -1250,7 +1261,7 @@
         "initialize": "",
         "finalize": "",
         "x": 870,
-        "y": 940,
+        "y": 960,
         "wires": [
             [
                 "e9d15f94.032b4"
@@ -1275,7 +1286,7 @@
         "output_location_type": "none",
         "mustacheAltTags": false,
         "x": 220,
-        "y": 1260,
+        "y": 1280,
         "wires": [
             []
         ]
@@ -1285,13 +1296,14 @@
         "type": "function",
         "z": "4eeba49b.667c6c",
         "name": "events action handling",
-        "func": "const copyObjectWithoutOffsetSeconds = (x, levels) => {\n    if (levels === 0) \n        return x;\n        \n    const copiedObject = {};\n    for (const [key, value] of Object.entries(x)) {\n        if (key === 'offsetSeconds') \n            continue;\n        \n        if (Array.isArray(value) || typeof(value) !== 'object') {\n            copiedObject[key] = value;\n            continue;\n        }\n        copiedObject[key] = Object.assign({}, copyObjectWithoutOffsetSeconds(value, levels--));\n    }\n    return copiedObject;\n};\n\nif (msg.payload.action.startsWith('events.execute.')) {\n    const eventLocation = msg.payload.action.substring('events.execute.'.length);\n    const config = global.get(`configuration.events.${eventLocation}`);\n    const actions = config.actions || config;\n    const copiedActions = {};\n    for (const [actionName, action] of Object.entries(actions)) {\n        if (actionName === 'active' || actionName === 'activate') \n            continue; //always active when executing manually\n        \n        copiedActions[actionName] = copyObjectWithoutOffsetSeconds(action, 2);\n    }\n    \n    msg.actions = copiedActions;\n    msg.context = context;\n    msg.entity = { \n        entity_id: `events.manual_execution_${eventLocation.replace('.', '_')}`,\n        state: 'requested',\n        attributes: {\n            friendly_name: `Manual execution of '${eventLocation}'`\n        }\n    };\n    node.status({fill:\"green\",shape:\"dot\",text:`executing actions of ${eventLocation}}`});\n    return msg;\n}\n\nnode.status({fill:\"grey\",shape:\"dot\",text:`unknown action: ${msg.payload.action}`});\nreturn null;",
+        "func": "const copyObjectWithoutOffsetSeconds = (x, levels) => {\n    if (levels === 0) \n        return x;\n        \n    const copiedObject = {};\n    for (const [key, value] of Object.entries(x)) {\n        if (key === 'offset_seconds') \n            continue;\n        \n        if (Array.isArray(value) || typeof(value) !== 'object') {\n            copiedObject[key] = value;\n            continue;\n        }\n        copiedObject[key] = Object.assign({}, copyObjectWithoutOffsetSeconds(value, levels--));\n    }\n    return copiedObject;\n};\n\nif (msg.payload.action.startsWith('events.execute.')) {\n    const eventLocation = msg.payload.action.substring('events.execute.'.length);\n    const config = global.get(`configuration.events.${eventLocation}`);\n    const actions = config.actions || config;\n    const copiedActions = {};\n    for (const [actionName, action] of Object.entries(actions)) {\n        if (actionName === 'active' || actionName === 'activate') \n            continue; //always active when executing manually\n        \n        copiedActions[actionName] = copyObjectWithoutOffsetSeconds(action, 2);\n    }\n    \n    msg.actions = copiedActions;\n    msg.context = context;\n    msg.entity = { \n        entity_id: `events.manual_execution_${eventLocation.replace('.', '_')}`,\n        state: 'requested',\n        attributes: {\n            friendly_name: `Manual execution of '${eventLocation}'`\n        }\n    };\n    node.status({fill:\"green\",shape:\"dot\",text:`executing actions of ${eventLocation}}`});\n    return msg;\n}\n\nnode.status({fill:\"grey\",shape:\"dot\",text:`unknown action: ${msg.payload.action}`});\nreturn null;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 880,
-        "y": 820,
+        "y": 840,
         "wires": [
             [
                 "d47b15f0.8bcbb8"
@@ -1307,7 +1319,7 @@
             "1d0ae548.8bd06b"
         ],
         "x": 1015,
-        "y": 820,
+        "y": 840,
         "wires": []
     },
     {
@@ -1321,7 +1333,7 @@
         "initialize": "",
         "finalize": "",
         "x": 730,
-        "y": 1640,
+        "y": 1660,
         "wires": [
             [
                 "2a844043.3c2f7"
@@ -1344,7 +1356,7 @@
         "randomUnits": "seconds",
         "drop": false,
         "x": 690,
-        "y": 1520,
+        "y": 1540,
         "wires": [
             [
                 "849da022.0e8d8"
@@ -1375,9 +1387,9 @@
         "id": "85a44c5a.606e2",
         "type": "comment",
         "z": "4eeba49b.667c6c",
-        "name": "State changes handling",
+        "name": "State changes handling & state match",
         "info": "",
-        "x": 140,
+        "x": 190,
         "y": 520,
         "wires": []
     },
@@ -1388,7 +1400,7 @@
         "name": "Switch & timers handling",
         "info": "",
         "x": 150,
-        "y": 640,
+        "y": 660,
         "wires": []
     },
     {
@@ -1398,7 +1410,7 @@
         "name": "NodeRED event handling",
         "info": "",
         "x": 150,
-        "y": 760,
+        "y": 780,
         "wires": []
     },
     {
@@ -1408,7 +1420,7 @@
         "name": "Schedules handling",
         "info": "",
         "x": 130,
-        "y": 900,
+        "y": 920,
         "wires": []
     },
     {
@@ -1425,8 +1437,50 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 990,
-        "y": 1180,
+        "y": 1200,
         "wires": []
+    },
+    {
+        "id": "79b86472.4df69c",
+        "type": "api-call-service",
+        "z": "4eeba49b.667c6c",
+        "name": "Call service",
+        "server": "c502bde5.d2724",
+        "version": 1,
+        "debugenabled": false,
+        "service_domain": "",
+        "service": "",
+        "entityId": "",
+        "data": "",
+        "dataType": "json",
+        "mergecontext": "",
+        "output_location": "",
+        "output_location_type": "none",
+        "mustacheAltTags": false,
+        "x": 590,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ce814253.3f3ff",
+        "type": "function",
+        "z": "4eeba49b.667c6c",
+        "name": "Find entities to match state",
+        "func": "const entityId = msg.data.event.entity_id;\nconst currentState = msg.data.event.new_state && msg.data.event.new_state.state;\nconst previousState = msg.data.event.old_state && msg.data.event.old_state.state;\nif (currentState === previousState || typeof(currentState) === 'undefined' || typeof(previousState) === 'undefined') return;\n\nconst stateMatchTo = global.get(`configuration.state_matching.${entityId}`);\nif (!stateMatchTo) return;\n\nconst helpers = global.get('helpers');\n\nconst stateMatchEntities = (Array.isArray(stateMatchTo) ? stateMatchTo : [stateMatchTo])\n        .map(x => `${helpers.getEntityDomain(entityId)}.${x}`)\n        .filter(x => helpers.getEntityState(x) !== currentState);\nif (stateMatchEntities.length === 0) return;\n\nnode.status({fill:\"green\",shape:\"dot\",text:`matched ${entityId} to ${stateMatchEntities.join(', ')}`});\nreturn stateMatchEntities.map(x => helpers.buildServiceCallFromState(x, currentState)).map(x => ({ payload: x }))",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 600,
+        "wires": [
+            [
+                "79b86472.4df69c"
+            ]
+        ]
     },
     {
         "id": "c502bde5.d2724",

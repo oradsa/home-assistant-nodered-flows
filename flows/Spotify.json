@@ -23,7 +23,7 @@
                 "vt": "bool"
             },
             {
-                "p": "shuffleAfterFirstSong",
+                "p": "shuffleAfterFirstSong1",
                 "v": "true",
                 "vt": "bool"
             },
@@ -56,11 +56,12 @@
         "type": "function",
         "z": "ff525980.3b11b8",
         "name": "",
-        "func": "if (!msg.playlist) {\n    node.status({fill:\"red\",shape:\"dot\",text:`no playlist requested`});\n    return null;\n}\n\nconst config = msg.config;\nconst isMatch = (x, y)  => {\n    (config.ignoredCharsWhenComparingNames || ['(',')',' - ']).forEach(c => {\n       x = !!x ? x.replace(c, \"\") : x;\n       y = !!y ? y.replace(c, \"\") : y;\n    });\n    return x === y || (!!x && !!y && x.toLowerCase() == y.toLowerCase());\n};\n\nif (!msg.deviceId) {\n    if (!msg.payload || msg.payload.error || msg.statusCode !== 200) {\n        node.status({fill:\"red\",shape:\"dot\",\n                     text:`failed to get available devices: ${(msg.payload && msg.payload.error && msg.payload.error.message) || 'unknown error'}`});\n        return null;\n    }\n    let device = msg.payload.devices.find(x => x.is_active);\n    if (msg.device || (!device && config.defaultDevice)) {\n        const deviceName = msg.device || config.defaultDevice;\n        device = msg.payload.devices.find(x => isMatch(x.name, deviceName));\n    }\n    if (!device) {\n        node.status({fill:\"red\",shape:\"dot\",\n                     text: msg.device ? `device '${msg.device || config.defaultDevice}' could not be found`\n                                      : `no device requested, and no active or default device found`});\n        return null;\n    }\n    msg.deviceId = device.id;\n}\n\nconst isPlaylistUri = x => typeof(x) === 'string' && (x.startsWith('spotify:') || x.startsWith('https://open.spotify.'));\nlet playlistName = msg.playlist;\nif (config.playlistNicknames && !isPlaylistUri(playlistName)) {\n    playlistName = Object.keys(config.playlistNicknames)\n                         .find(x => config.playlistNicknames[x]\n                                          .find(nickname => isMatch(nickname, playlistName))) || playlistName;\n}\nconst playlist = isPlaylistUri(playlistName) ? { uri: playlistName }\n                                             : (msg.payload && msg.payload.items && msg.payload.items.find(x => isMatch(x.name, playlistName)));\nif (!playlist) {\n    if (msg.payload && msg.payload.error) {\n        node.status({fill:\"red\",shape:\"dot\",text:`can't get playlists: ${msg.payload.error.message}`});\n        return null;\n    }\n    const getPlaylistsUrl = (msg.payload && msg.payload.items) ? msg.payload.next : \"https://api.spotify.com/v1/me/playlists?limit=50\";\n    if (getPlaylistsUrl) {\n        msg.method = \"GET\";\n        msg.url = getPlaylistsUrl;\n        msg.headers = msg.authorizationHeaders;\n        return msg;\n    }\n    node.status({fill:\"red\",shape:\"dot\",text:`playlist not found`});\n    return null;\n}\n\n\nmsg.playlist = playlist.uri;\nmsg.method = \"PUT\";\nmsg.url = `https://api.spotify.com/v1/me/player/play?device_id=${msg.deviceId}`;\nmsg.headers = msg.authorizationHeaders;\nmsg.payload = { context_uri: playlist.uri };\nlet setShuffleMsg = null\nif (msg.shuffle) {\n    const createShuffleMsg = (shuffle, delay) => ({ \n        method: \"PUT\",\n        url: `https://api.spotify.com/v1/me/player/shuffle?device_id=${msg.deviceId}&state=${shuffle ? 'true' : 'false'}`,\n        headers: msg.authorizationHeaders,\n        delay: delay\n    });\n    setShuffleMsg = msg.shuffleAfterFirstSong ? [ createShuffleMsg(false, 0), createShuffleMsg(true, 800) ]\n                                              : createShuffleMsg(true, 0);\n}\nmsg.delay = setShuffleMsg ? 500 : 0;\n\nlet setVolumeMsg = null;\nif (typeof(msg.volume) === 'number') {\n    setVolumeMsg = {\n        ...msg,\n        delay: msg.delay + 100\n    };\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`playing '${playlist.name || msg.playlist}' playlist`});\nreturn [\n    null,\n    msg,\n    setShuffleMsg,\n    setVolumeMsg\n];",
+        "func": "if (!msg.playlist) {\n    node.status({fill:\"red\",shape:\"dot\",text:`no playlist requested`});\n    return null;\n}\n\nconst config = msg.config;\nconst isMatch = (x, y)  => {\n    (config.ignored_chars_when_comparing_names || ['(',')',' - ']).forEach(c => {\n       x = !!x ? x.replace(c, \"\") : x;\n       y = !!y ? y.replace(c, \"\") : y;\n    });\n    return x === y || (!!x && !!y && x.toLowerCase() == y.toLowerCase());\n};\n\nif (!msg.deviceId) {\n    if (!msg.payload || msg.payload.error || msg.statusCode !== 200) {\n        node.status({fill:\"red\",shape:\"dot\",\n                     text:`failed to get available devices: ${(msg.payload && msg.payload.error && msg.payload.error.message) || 'unknown error'}`});\n        return null;\n    }\n    let device = msg.payload.devices.find(x => x.is_active);\n    if (msg.device || (!device && config.default_device)) {\n        const deviceName = msg.device || config.default_device;\n        device = msg.payload.devices.find(x => isMatch(x.name, deviceName));\n        if (!device && config.device_aliases) {\n            device = Object.keys(config.device_aliases)\n                           .filter(x => (Array.isArray(config.device_aliases[x]) ? config.device_aliases[x] : ([config.device_aliases[x]]))\n                                        .find(alias => isMatch(alias, deviceName)))\n                           .map(x => ({id: x})).find(x => !!x.id);\n        }\n    }\n    if (!device) {\n        node.status({fill:\"red\",shape:\"dot\",\n                     text: msg.device ? `device '${msg.device || config.default_device}' could not be found`\n                                      : `no device requested, and no active or default device found`});\n        return null;\n    }\n    msg.deviceId = device.id;\n}\n\nconst isPlaylistUri = x => typeof(x) === 'string' && (x.startsWith('spotify:') || x.startsWith('https://open.spotify.'));\nlet playlistName = msg.playlist;\nif (config.playlist_aliases && !isPlaylistUri(playlistName)) {\n    playlistName = Object.keys(config.playlist_aliases)\n                         .find(x => (Array.isArray(config.playlist_aliases[x]) ? config.playlist_aliases[x] : ([config.playlist_aliases[x]]))\n                                        .find(alias => isMatch(alias, playlistName))) || playlistName;\n}\nconst playlist = isPlaylistUri(playlistName) ? { uri: playlistName }\n                                             : (msg.payload && msg.payload.items && msg.payload.items.find(x => isMatch(x.name, playlistName)));\nif (!playlist) {\n    if (msg.payload && msg.payload.error) {\n        node.status({fill:\"red\",shape:\"dot\",text:`can't get playlists: ${msg.payload.error.message}`});\n        return null;\n    }\n    const getPlaylistsUrl = (msg.payload && msg.payload.items) ? msg.payload.next : \"https://api.spotify.com/v1/me/playlists?limit=50\";\n    if (getPlaylistsUrl) {\n        msg.method = \"GET\";\n        msg.url = getPlaylistsUrl;\n        msg.headers = msg.authorizationHeaders;\n        return msg;\n    }\n    node.status({fill:\"red\",shape:\"dot\",text:`playlist not found`});\n    return null;\n}\n\n\nmsg.playlist = playlist.uri;\nmsg.method = \"PUT\";\nmsg.url = `https://api.spotify.com/v1/me/player/play?device_id=${msg.deviceId}`;\nmsg.headers = msg.authorizationHeaders;\nmsg.payload = { context_uri: playlist.uri };\nmsg.delay = 0;\n\nconst shuffleMsg = [];\nif (typeof(msg.shuffle) !== 'undefined') {\n    shuffleMsg.push({ \n        method: \"PUT\",\n        url: `https://api.spotify.com/v1/me/player/shuffle?device_id=${msg.deviceId}&state=${msg.shuffle ? 'true' : 'false'}`,\n        headers: msg.authorizationHeaders,\n        authorizationHeaders: msg.authorizationHeaders,\n        delay: msg.shuffleAfterFirstSong ? msg.delay + 2000 : 0\n    });\n    if (msg.shuffle && !msg.shuffleAfterFirstSong) {\n        shuffleMsg.push({ \n            method: \"POST\",\n            url: `https://api.spotify.com/v1/me/player/next?device_id=${msg.deviceId}`,\n            headers: msg.authorizationHeaders,\n            authorizationHeaders: msg.authorizationHeaders,\n            delay: msg.delay + 100\n        });\n    }\n}\n\nlet setVolumeMsg = null;\nif (typeof(msg.volume) === 'number') {\n    setVolumeMsg = {\n        ...msg,\n        delay: msg.delay + 100\n    };\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text:`playing '${playlist.name || msg.playlist}' playlist`});\nreturn [\n    null,\n    msg,\n    shuffleMsg,\n    setVolumeMsg\n];",
         "outputs": 4,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 280,
         "y": 440,
         "wires": [
@@ -107,7 +108,7 @@
         "topic": "",
         "payloadType": "str",
         "x": 130,
-        "y": 640,
+        "y": 700,
         "wires": [
             [
                 "113fd173.cfceef"
@@ -119,13 +120,14 @@
         "type": "function",
         "z": "ff525980.3b11b8",
         "name": "",
-        "func": "if (!msg.device) {\n    node.status({fill:\"red\",shape:\"dot\",text:`no device`});\n    return null;\n}\n\nconst config = msg.config;\nconst isMatch = (x, y)  => {\n    (config.ignoredCharsWhenComparingNames || ['(',')',' - ']).forEach(c => {\n       x = !!x ? x.replace(c, \"\") : x;\n       y = !!y ? y.replace(c, \"\") : y;\n    });\n    return x === y || (!!x && !!y && x.toLowerCase() == y.toLowerCase());\n};\n\nif (!msg.deviceId) {\n    let deviceName = msg.device;\n    if (config.deviceNicknames) {\n        deviceName = Object.keys(config.deviceNicknames)\n                           .find(x => config.deviceNicknames[x]\n                                            .find(nickname => isMatch(nickname, deviceName))) || deviceName;\n    }\n    const device = msg.payload.devices.find(x => isMatch(x.name, deviceName));\n    if (!device) {\n        node.status({fill:\"red\",shape:\"dot\",text:`device not found: ${msg.device}`});\n        return null;\n    }\n    if (device.is_restricted) {\n        const error = `device is restricted (Sonos): ${device.name}. restricted devices allowed only on 'web_player_token' authorization type.`;\n        node.status({fill:\"red\",shape:\"dot\",text:error});\n        node.error(\"Spotify \" + error);\n        return null;\n    }\n    msg.deviceId = device.id;\n    msg.deviceName = device.name;\n}\n\nconst isDeviceAlreadyPlaying = msg.currentPlaybackStatus.is_playing && msg.currentPlaybackStatus.device.id === msg.deviceId;\nif (!isDeviceAlreadyPlaying) {\n    msg.method = \"PUT\";\n    msg.url = \"https://api.spotify.com/v1/me/player\";\n    msg.headers = msg.authorizationHeaders;\n    msg.payload = { \n        device_ids: [ msg.deviceId ],\n        play: typeof(msg.play) === 'boolean' ? msg.play : true\n    };\n}\n\nlet setVolumeMsg = null;\nif (typeof(msg.volume) === 'number') {\n    setVolumeMsg = {\n        method: \"PUT\",\n        url: `https://api.spotify.com/v1/me/player/volume?device_id=${msg.deviceId}&volume_percent=${msg.volume}`,\n        headers: msg.authorizationHeaders\n    };\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text: `playing on: ${msg.deviceName}`});\nreturn [\n    isDeviceAlreadyPlaying ? null : msg,\n    setVolumeMsg\n];",
+        "func": "if (!msg.device) {\n    node.status({fill:\"red\",shape:\"dot\",text:`no device`});\n    return null;\n}\n\nconst config = msg.config;\nconst isMatch = (x, y)  => {\n    (config.ignoredCharsWhenComparingNames || ['(',')',' - ']).forEach(c => {\n       x = !!x ? x.replace(c, \"\") : x;\n       y = !!y ? y.replace(c, \"\") : y;\n    });\n    return x === y || (!!x && !!y && x.toLowerCase() == y.toLowerCase());\n};\n\nif (!msg.deviceId) {\n    let deviceName = msg.device;\n    let device = msg.payload.devices.find(x => isMatch(x.name, deviceName));\n    if (!device && config.device_aliases) {\n        device = Object.keys(config.device_aliases)\n                       .filter(x => (Array.isArray(config.device_aliases[x]) ? config.device_aliases[x] : ([config.device_aliases[x]]))\n                                    .find(alias => isMatch(alias, deviceName)))\n                       .map(x => ({id: x})).find(x => !!x.id);\n    }\n    if (!device) {\n        node.status({fill:\"red\",shape:\"dot\",text:`device not found: ${msg.device}`});\n        return null;\n    }\n    if (device.is_restricted) {\n        const error = `device is restricted (Sonos): ${device.name}. restricted devices allowed only on 'web_player_token' authorization type.`;\n        node.status({fill:\"red\",shape:\"dot\",text:error});\n        node.error(\"Spotify \" + error);\n        return null;\n    }\n    msg.deviceId = device.id;\n    msg.deviceName = deviceName;\n}\n\nconst isDeviceAlreadyPlaying = msg.currentPlaybackStatus.is_playing && msg.currentPlaybackStatus.device.id === msg.deviceId;\nif (!isDeviceAlreadyPlaying) {\n    msg.method = \"PUT\";\n    msg.url = \"https://api.spotify.com/v1/me/player\";\n    msg.headers = msg.authorizationHeaders;\n    msg.payload = { \n        device_ids: [ msg.deviceId ],\n        play: typeof(msg.play) === 'boolean' ? msg.play : true\n    };\n}\n\nlet setVolumeMsg = null;\nif (typeof(msg.volume) === 'number') {\n    setVolumeMsg = {\n        method: \"PUT\",\n        url: `https://api.spotify.com/v1/me/player/volume?device_id=${msg.deviceId}&volume_percent=${msg.volume}`,\n        headers: msg.authorizationHeaders,\n        authorizationHeaders: msg.authorizationHeaders\n    };\n}\n\nnode.status({fill:\"green\",shape:\"dot\",text: `playing on: ${msg.deviceName}`});\nreturn [\n    isDeviceAlreadyPlaying ? null : msg,\n    setVolumeMsg\n];",
         "outputs": 2,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 280,
-        "y": 780,
+        "y": 840,
         "wires": [
             [
                 "83b684b4.690578"
@@ -169,7 +171,7 @@
         "name": "Move playback to device or set volume",
         "info": "",
         "x": 230,
-        "y": 600,
+        "y": 660,
         "wires": []
     },
     {
@@ -186,7 +188,7 @@
             "f03c6a0f.d9b208"
         ],
         "x": 155,
-        "y": 680,
+        "y": 740,
         "wires": [
             [
                 "113fd173.cfceef"
@@ -258,7 +260,7 @@
         "y": 440,
         "wires": [
             [
-                "b9556ee0.ce486"
+                "c14dcf3f.ea22"
             ]
         ]
     },
@@ -342,11 +344,12 @@
         "type": "function",
         "z": "ff525980.3b11b8",
         "name": "",
-        "func": "if (msg.statusCode === 204 || msg.statusCode === 202) {\n    node.status({fill:\"green\",shape:\"dot\",text:`play was successful, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nmsg.delay = 500;\nmsg.tries = msg.tries ? msg.tries - 1 : (60000 / msg.delay);\nif (msg.tries <= 0) {\n    node.status({fill:\"red\",shape:\"dot\",text:`failed to play, ${new Date().toLocaleString()}`});\n    return null;\n}\nnode.status({fill:\"grey\",shape:\"dot\",text:`retrying`});\nreturn msg;",
+        "func": "if (msg.statusCode === 204 || msg.statusCode === 202) {\n    node.status({fill:\"green\",shape:\"dot\",text:`play was successful, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nmsg.delay = 100;\nmsg.tries = msg.tries ? msg.tries - 1 : (15000 / msg.delay);\nif (msg.tries <= 0) {\n    node.status({fill:\"red\",shape:\"dot\",text:`failed to play, ${new Date().toLocaleString()}`});\n    return null;\n}\nnode.status({fill:\"grey\",shape:\"dot\",text:`retrying`});\nmsg.headers = msg.authorizationHeaders;\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 740,
         "y": 440,
         "wires": [
@@ -432,11 +435,12 @@
         "type": "function",
         "z": "ff525980.3b11b8",
         "name": "Prepare",
-        "func": "const globalConfig = global.get(\"configuration.spotify\");\nconst configName = msg.user ? msg.user \n                            : (typeof(globalConfig.default) === 'string') ? globalConfig.default : 'default';\nconst config = globalConfig && (globalConfig[configName] || globalConfig[configName.toLowerCase()] || \n                                (msg.user && (globalConfig.find(x => x.user === user) || globalConfig.find(x => x.user === user.toLowerCase()))));\nif (!config) {\n    node.status({fill:\"red\",shape:\"dot\",text:`can't find Spotify configuration (${msg.user || 'default'})`});\n    return null;\n}\nmsg.config = config;\n\nswitch (config.authorization && config.authorization.type) {\n    case \"api_token\":\n        if (!config.authorization.clientId || !config.authorization.clientSecret || !config.authorization.refreshToken)\n            break;\n        msg.method = \"POST\";\n        msg.url = \"https://accounts.spotify.com/api/token\";\n        msg.headers = {\n            \"Content-Type\": \"application/x-www-form-urlencoded\",\n            \"Authorization\": \"Basic \" + Buffer.from(`${config.authorization.clientId}:${config.authorization.clientSecret}`).toString('base64')\n        };\n        msg.payload = `grant_type=refresh_token&refresh_token=${config.authorization.refreshToken}`;\n        return msg;\n    case \"web_player_token\":\n        if (!config.authorization.sp_dc || !config.authorization.sp_t)\n            break;\n        msg.method = \"GET\";\n        msg.url = \"https://open.spotify.com/get_access_token?reason=transport&productType=web_player\";\n        msg.headers = {\n            \"cookie\": `sp_dc=${config.authorization.sp_dc};sp_t=${config.authorization.sp_t}`,\n            \"user-agent\": config.authorization[\"user-agent\"] || \"Mozilla/5.0 (Windows NT 10.0; Win64; x64)\"\n        };\n        return msg;\n}\n\nnode.status({fill:\"red\",shape:\"dot\",text:`invalid Spotify authorization configuration (${msg.user || 'default'})`});\nreturn null;\n",
+        "func": "const globalConfig = global.get(\"configuration.spotify\");\nconst configName = msg.user ? msg.user \n                            : (typeof(globalConfig.default) === 'string') ? globalConfig.default : 'default';\nconst config = globalConfig && (globalConfig[configName] || globalConfig[configName.toLowerCase()] || \n                                (msg.user && (globalConfig.find(x => x.user === user) || globalConfig.find(x => x.user === user.toLowerCase()))));\nif (!config) {\n    node.status({fill:\"red\",shape:\"dot\",text:`can't find Spotify configuration (${msg.user || 'default'})`});\n    return null;\n}\nmsg.config = config;\n\nswitch (config.authorization && config.authorization.type) {\n    case \"api_token\":\n        if (!config.authorization.client_id || !config.authorization.client_secret || !config.authorization.refresh_token)\n            break;\n        msg.method = \"POST\";\n        msg.url = \"https://accounts.spotify.com/api/token\";\n        msg.headers = {\n            \"Content-Type\": \"application/x-www-form-urlencoded\",\n            \"Authorization\": \"Basic \" + Buffer.from(`${config.authorization.client_id}:${config.authorization.client_secret}`).toString('base64')\n        };\n        msg.payload = `grant_type=refresh_token&refresh_token=${config.authorization.refresh_token}`;\n        return msg;\n    case \"web_player_token\":\n        if (!config.authorization.sp_dc || !config.authorization.sp_key)\n            break;\n        msg.method = \"GET\";\n        msg.url = \"https://open.spotify.com/get_access_token?reason=transport&productType=web_player\";\n        msg.headers = {\n            \"cookie\": `sp_dc=${config.authorization.sp_dc};sp_key=${config.authorization.sp_key}`,\n            \"user-agent\": config.authorization.user_agent || \"Mozilla/5.0 (Windows NT 10.0; Win64; x64)\"\n        };\n        return msg;\n}\n\nnode.status({fill:\"red\",shape:\"dot\",text:`invalid Spotify authorization configuration (${msg.user || 'default'})`});\nreturn null;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 280,
         "y": 300,
         "wires": [
@@ -507,7 +511,9 @@
         "x": 570,
         "y": 480,
         "wires": [
-            []
+            [
+                "b3a2edd3.298b3"
+            ]
         ]
     },
     {
@@ -558,13 +564,14 @@
         "type": "function",
         "z": "ff525980.3b11b8",
         "name": "Prepare",
-        "func": "const globalConfig = global.get(\"configuration.spotify\");\nconst configName = msg.user ? msg.user \n                            : (typeof(globalConfig.default) === 'string') ? globalConfig.default : 'default';\nconst config = globalConfig && (globalConfig[configName] || globalConfig[configName.toLowerCase()] || \n                                (msg.user && (globalConfig.find(x => x.user === user) || globalConfig.find(x => x.user === user.toLowerCase()))));\nif (!config) {\n    node.status({fill:\"red\",shape:\"dot\",text:`can't find Spotify configuration (${msg.user || 'default'})`});\n    return null;\n}\nmsg.config = config;\n\nswitch (config.authorization && config.authorization.type) {\n    case \"api_token\":\n        if (!config.authorization.clientId || !config.authorization.clientSecret || !config.authorization.refreshToken)\n            break;\n        msg.method = \"POST\";\n        msg.url = \"https://accounts.spotify.com/api/token\";\n        msg.headers = {\n            \"Content-Type\": \"application/x-www-form-urlencoded\",\n            \"Authorization\": \"Basic \" + Buffer.from(`${config.authorization.clientId}:${config.authorization.clientSecret}`).toString('base64')\n        };\n        msg.payload = `grant_type=refresh_token&refresh_token=${config.authorization.refreshToken}`;\n        return msg;\n    case \"web_player_token\":\n        if (!config.authorization.sp_dc || !config.authorization.sp_t)\n            break;\n        msg.method = \"GET\";\n        msg.url = \"https://open.spotify.com/get_access_token?reason=transport&productType=web_player\";\n        msg.headers = {\n            \"cookie\": `sp_dc=${config.authorization.sp_dc};sp_t=${config.authorization.sp_t}`,\n            \"user-agent\": config.authorization[\"user-agent\"] || \"Mozilla/5.0 (Windows NT 10.0; Win64; x64)\"\n        };\n        return msg;\n}\n\nnode.status({fill:\"red\",shape:\"dot\",text:`invalid Spotify authorization configuration (${msg.user || 'default'})`});\nreturn null;\n",
+        "func": "const globalConfig = global.get(\"configuration.spotify\");\nconst configName = msg.user ? msg.user \n                            : (typeof(globalConfig.default) === 'string') ? globalConfig.default : 'default';\nconst config = globalConfig && (globalConfig[configName] || globalConfig[configName.toLowerCase()] || \n                                (msg.user && (globalConfig.find(x => x.user === user) || globalConfig.find(x => x.user === user.toLowerCase()))));\nif (!config) {\n    node.status({fill:\"red\",shape:\"dot\",text:`can't find Spotify configuration (${msg.user || 'default'})`});\n    return null;\n}\nmsg.config = config;\n\nswitch (config.authorization && config.authorization.type) {\n    case \"api_token\":\n        if (!config.authorization.client_id || !config.authorization.client_secret || !config.authorization.refresh_token)\n            break;\n        msg.method = \"POST\";\n        msg.url = \"https://accounts.spotify.com/api/token\";\n        msg.headers = {\n            \"Content-Type\": \"application/x-www-form-urlencoded\",\n            \"Authorization\": \"Basic \" + Buffer.from(`${config.authorization.client_id}:${config.authorization.client_secret}`).toString('base64')\n        };\n        msg.payload = `grant_type=refresh_token&refresh_token=${config.authorization.refresh_token}`;\n        return msg;\n    case \"web_player_token\":\n        if (!config.authorization.sp_dc || !config.authorization.sp_key)\n            break;\n        msg.method = \"GET\";\n        msg.url = \"https://open.spotify.com/get_access_token?reason=transport&productType=web_player\";\n        msg.headers = {\n            \"cookie\": `sp_dc=${config.authorization.sp_dc};sp_key=${config.authorization.sp_key}`,\n            \"user-agent\": config.authorization.user_agent || \"Mozilla/5.0 (Windows NT 10.0; Win64; x64)\"\n        };\n        return msg;\n}\n\nnode.status({fill:\"red\",shape:\"dot\",text:`invalid Spotify authorization configuration (${msg.user || 'default'})`});\nreturn null;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 280,
-        "y": 640,
+        "y": 700,
         "wires": [
             [
                 "3262b464.986c0c"
@@ -588,7 +595,7 @@
         "proxy": "",
         "authType": "",
         "x": 460,
-        "y": 640,
+        "y": 700,
         "wires": [
             [
                 "5eab6efc.8d892",
@@ -607,7 +614,7 @@
         "initialize": "",
         "finalize": "",
         "x": 690,
-        "y": 640,
+        "y": 700,
         "wires": [
             [
                 "df6ab13b.77e84"
@@ -631,7 +638,7 @@
         "proxy": "",
         "authType": "",
         "x": 460,
-        "y": 720,
+        "y": 780,
         "wires": [
             [
                 "3e3fff78.e880c",
@@ -650,7 +657,7 @@
         "initialize": "",
         "finalize": "",
         "x": 280,
-        "y": 720,
+        "y": 780,
         "wires": [
             [
                 "880d60e5.057f9"
@@ -676,10 +683,10 @@
         "randomUnits": "seconds",
         "drop": false,
         "x": 830,
-        "y": 760,
+        "y": 820,
         "wires": [
             [
-                "3e3fff78.e880c"
+                "83b684b4.690578"
             ]
         ]
     },
@@ -688,13 +695,14 @@
         "type": "function",
         "z": "ff525980.3b11b8",
         "name": "",
-        "func": "if (msg.statusCode === 204 || msg.statusCode === 202) {\n    node.status({fill:\"green\",shape:\"dot\",text:`transfer was successful, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nmsg.delay = 500;\nmsg.tries = msg.tries ? msg.tries - 1 : (60000 / msg.delay);\nif (msg.tries <= 0) {\n    node.status({fill:\"red\",shape:\"dot\",text:`failed to transfer, ${new Date().toLocaleString()}`});\n    return null;\n}\nnode.status({fill:\"grey\",shape:\"dot\",text:`retrying`});\nreturn msg;",
+        "func": "if (msg.statusCode === 204 || msg.statusCode === 202) {\n    node.status({fill:\"green\",shape:\"dot\",text:`transfer was successful, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nmsg.delay = 100;\nmsg.tries = msg.tries ? msg.tries - 1 : (15000 / msg.delay);\nif (msg.tries <= 0) {\n    node.status({fill:\"red\",shape:\"dot\",text:`failed to transfer, ${new Date().toLocaleString()}`});\n    return null;\n}\nnode.status({fill:\"grey\",shape:\"dot\",text:`retrying`});\nmsg.headers = msg.authorizationHeaders;\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
+        "libs": [],
         "x": 700,
-        "y": 760,
+        "y": 820,
         "wires": [
             [
                 "62b318f3.63e828"
@@ -715,7 +723,7 @@
         "proxy": "",
         "authType": "",
         "x": 500,
-        "y": 760,
+        "y": 820,
         "wires": [
             [
                 "3321f4f8.3ca28c"
@@ -736,9 +744,11 @@
         "proxy": "",
         "authType": "",
         "x": 450,
-        "y": 800,
+        "y": 860,
         "wires": [
-            []
+            [
+                "cdea2483.070118"
+            ]
         ]
     },
     {
@@ -752,7 +762,7 @@
         "initialize": "",
         "finalize": "",
         "x": 280,
-        "y": 680,
+        "y": 740,
         "wires": [
             [
                 "5d072f2a.95fce"
@@ -776,7 +786,7 @@
         "proxy": "",
         "authType": "",
         "x": 480,
-        "y": 680,
+        "y": 740,
         "wires": [
             [
                 "be574abd.6149e8",
@@ -815,7 +825,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 1010,
-        "y": 640,
+        "y": 700,
         "wires": []
     },
     {
@@ -832,7 +842,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 1010,
-        "y": 680,
+        "y": 740,
         "wires": []
     },
     {
@@ -849,7 +859,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 1010,
-        "y": 720,
+        "y": 780,
         "wires": []
     },
     {
@@ -903,5 +913,89 @@
         "x": 515,
         "y": 520,
         "wires": []
+    },
+    {
+        "id": "8b564cc8.91512",
+        "type": "delay",
+        "z": "ff525980.3b11b8",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 870,
+        "y": 480,
+        "wires": [
+            [
+                "246ac9c4.0a5b76"
+            ]
+        ]
+    },
+    {
+        "id": "b3a2edd3.298b3",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (msg.statusCode === 204 || msg.statusCode === 202) {\n    node.status({fill:\"green\",shape:\"dot\",text:`set shuffle was successful, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nmsg.delay = 100;\nmsg.tries = msg.tries ? msg.tries - 1 : (5000 / msg.delay);\nif (msg.tries <= 0) {\n    node.status({fill:\"red\",shape:\"dot\",text:`failed to set shuffle, ${new Date().toLocaleString()}`});\n    return null;\n}\nnode.status({fill:\"grey\",shape:\"dot\",text:`retrying`});\nmsg.headers = msg.authorizationHeaders;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 740,
+        "y": 480,
+        "wires": [
+            [
+                "8b564cc8.91512"
+            ]
+        ]
+    },
+    {
+        "id": "57643e27.49de2",
+        "type": "delay",
+        "z": "ff525980.3b11b8",
+        "name": "delay",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 830,
+        "y": 860,
+        "wires": [
+            [
+                "fbcaaabc.2a5ff8"
+            ]
+        ]
+    },
+    {
+        "id": "cdea2483.070118",
+        "type": "function",
+        "z": "ff525980.3b11b8",
+        "name": "",
+        "func": "if (msg.statusCode === 204 || msg.statusCode === 202) {\n    node.status({fill:\"green\",shape:\"dot\",text:`set volume was successful, ${new Date().toLocaleString()}`});\n    return null;\n}\n\nmsg.delay = 100;\nmsg.tries = msg.tries ? msg.tries - 1 : (5000 / msg.delay);\nif (msg.tries <= 0) {\n    node.status({fill:\"red\",shape:\"dot\",text:`failed to set volume, ${new Date().toLocaleString()}`});\n    return null;\n}\nnode.status({fill:\"grey\",shape:\"dot\",text:`retrying`});\nmsg.headers = msg.authorizationHeaders;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 860,
+        "wires": [
+            [
+                "57643e27.49de2"
+            ]
+        ]
     }
 ]

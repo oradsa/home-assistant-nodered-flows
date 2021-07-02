@@ -53,7 +53,7 @@ The `nodered-configuration.json` file contains the following main sections:
 * **events** - this is the triggers section.
 * **actions** - here you can define actions that you want to reffer to from multiple triggers, if needed.
 * **spotify** - contains the configuration and authorization for Spotify playback.
-* **inputEntitiesToConfigMap** - configuration for input entities that can control the Node-RED configuration file.
+* **input_entities_to_config_map** - configuration for input entities that can control the Node-RED configuration file.
 
 ### Events (triggers)
 The `events` property in the `nodered-configuration.json` file allows you to configure the following triggers:
@@ -67,8 +67,8 @@ The `events` property in the `nodered-configuration.json` file allows you to con
 The `actions` property in the `nodered-configuration.json` file allows you to [configure actions that you use multiple times](/documantation/actions/actions.md#multiple-usages-of-the-same-actions-object).
 
 The actions types that you can define:
-* [State preservation](/documantation/actions/statePreservation.md) - saving or restoring state of devices, filtering by domains and/or entities.
-* [Turn off](/documantation/actions/turnOff.md) - turn off any device which supports it, filtering by domains and/or entities.
+* [State preservation](/documantation/actions/state_preservation.md) - saving or restoring state of devices, filtering by domains and/or entities.
+* [Turn off](/documantation/actions/turn_off.md) - turn off any device which supports it, filtering by domains and/or entities.
 * [Media](/documantation/actions/media.md) - control `media_player` entities (play/resume, pause).
 * [Climate](/documantation/actions/climate.md) - control `climate` entities (turn on/off, set temperature).
 * [Cover](/documantation/actions/cover.md) - control `cover` entities (open, close, set position).
@@ -82,6 +82,6 @@ The `spotify` property in the `nodered-configuration.json` file holds the Soptif
 Reffer to [Spotify configuration](/documantation/spotify/spotify_configuration.md) documanation for more info.
 
 ### Input entities control
-The `inputEntitiesToConfigMap` property in the `nodered-configuration.json` file allows to configure [input entities](https://www.home-assistant.io/integrations/#search/input_) that can control the Node-RED configuration file. This is helpful when you want to be able to change certain configuraitons from the UI on the fly instead of opening the configuration file to change them.
+The `input_entities_to_config_map` property in the `nodered-configuration.json` file allows to configure [input entities](https://www.home-assistant.io/integrations/#search/input_) that can control the Node-RED configuration file. This is helpful when you want to be able to change certain configuraitons from the UI on the fly instead of opening the configuration file to change them.
 
-Reffer to [Input entities control](/documantation/inputEntitiesToConfigMap/inputEntitiesToConfigMap.md) documanation for more info.
+Reffer to [Input entities control](/documantation/input_entities_to_config_map/input_entities_to_config_map.md) documanation for more info.

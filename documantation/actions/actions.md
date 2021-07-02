@@ -22,13 +22,13 @@ The following configuration can be done on `actions` object:
 &nbsp; **active** &nbsp; *boolean* &nbsp; `optional` <br>
 &nbsp; Whether the action is active or not. Defaults to true.
 
-&nbsp; **offsetSeconds** &nbsp; *number* &nbsp; `optional` <br>
+&nbsp; **offset_seconds** &nbsp; *number* &nbsp; `optional` <br>
 &nbsp; The number of seconds to postpone the action. Only positive number is allowed.
 
 &nbsp; **restrictions** &nbsp; *object* &nbsp; `optional` <br>
 &nbsp; Define set of restrictions that only when met the actions will run.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **mustBeAtHome** &nbsp; *boolean*, *string* or *array of strings* &nbsp; `optional` <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **must_be_at_home** &nbsp; *boolean*, *string* or *array of strings* &nbsp; `optional` <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Use `true` to not restricting the person that needs to be at home. <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Use `"<person>"` (string) to specify which person needs to be at home.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Use `["<person_1>","<person_2>"]` (array of strings) to specify that one of persons needs to be at home.
@@ -40,7 +40,7 @@ Each specific action nested under the `actions` object supports the following op
 &nbsp; **active** &nbsp; *boolean* &nbsp; `optional` <br>
 &nbsp; Whether the action is active or not. Defaults to true.
 
-&nbsp; **offsetSeconds** &nbsp; *number* &nbsp; `optional` <br>
+&nbsp; **offset_seconds** &nbsp; *number* &nbsp; `optional` <br>
 &nbsp; The number of seconds to postpone the action. Only positive number is allowed.
 
 ## Multiple usages of the same actions object
